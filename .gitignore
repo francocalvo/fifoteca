@@ -5,3 +5,11 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Ralph
+.ralph/*
+PROMPT.md
+specs/*
+.worktrees/
+ralph.yml
+monitor.sh
