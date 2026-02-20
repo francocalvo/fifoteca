@@ -13,3 +13,4 @@ specs/*
 .worktrees/
 ralph.yml
 monitor.sh
+llm
