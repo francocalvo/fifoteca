@@ -14,10 +14,10 @@
 import { expect, test } from "@playwright/test"
 
 import {
-  type PlayerSetup,
   createGameRoom,
   getCurrentTurnPage,
   joinGameRoom,
+  type PlayerSetup,
   playLeaguePhase,
   setupPlayer,
   waitForGamePage,
@@ -59,9 +59,9 @@ test.describe("Special spins", () => {
       .click()
 
     // Receiver sees and accepts the proposal
-    await expect(
-      receiver.getByText("Mutual Superspin Proposal"),
-    ).toBeVisible({ timeout: 10_000 })
+    await expect(receiver.getByText("Mutual Superspin Proposal")).toBeVisible({
+      timeout: 10_000,
+    })
     await receiver.getByRole("button", { name: "Accept" }).click()
 
     // After acceptance, room resets. Both see Spin Phase again.
@@ -178,21 +178,10 @@ test.describe("Special spins", () => {
         .getByRole("button", { name: "Use Parity Spin" })
         .click()
 
-      // After parity spin, the button should disappear.
-      // If the WS notification doesn't propagate, reload to force state refresh.
-      const parityBtn = parityPlayer.getByRole("button", {
-        name: "Use Parity Spin",
-      })
-      try {
-        await expect(parityBtn).not.toBeVisible({ timeout: 5_000 })
-      } catch {
-        // WS notification may not have triggered a re-render — reload
-        await parityPlayer.reload()
-        await expect(parityPlayer.getByText("Rating Review")).toBeVisible({
-          timeout: 10_000,
-        })
-        await expect(parityBtn).not.toBeVisible({ timeout: 5_000 })
-      }
+      // After parity spin, the button should disappear (used once)
+      await expect(
+        parityPlayer.getByRole("button", { name: "Use Parity Spin" }),
+      ).not.toBeVisible({ timeout: 5_000 })
 
       // Test passed
       return

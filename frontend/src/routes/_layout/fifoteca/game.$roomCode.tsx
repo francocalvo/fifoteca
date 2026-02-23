@@ -353,7 +353,10 @@ function FifotecaGamePage() {
   )
   // Opponent team items: empty since we don't need to animate their spins
   // with the full list — the selectedOverride from WS handles the display
-  const opponentTeamItems = useMemo(() => [] as { id: string; name: string }[], [])
+  const opponentTeamItems = useMemo(
+    () => [] as { id: string; name: string }[],
+    [],
+  )
 
   // Selected items always come from the React Query cache (source of truth).
   // No local override — this prevents stale selectedOverride from masking
@@ -436,7 +439,10 @@ function FifotecaGamePage() {
               </Badge>
             )}
             {opponentState?.has_superspin && !opponentState?.superspin_used && (
-              <Badge variant="secondary" className="border-amber-500 text-amber-500">
+              <Badge
+                variant="secondary"
+                className="border-amber-500 text-amber-500"
+              >
                 Opponent Superspin
               </Badge>
             )}
@@ -452,7 +458,9 @@ function FifotecaGamePage() {
             team2Label={myTeamIsP1 ? opponentDisplayName : myDisplayName}
             difference={ratingReview.difference}
             protectionAwardedToId={ratingReview.protection_awarded_to_id}
-            superspinAvailableToId={ratingReview.superspin_available_to_id ?? null}
+            superspinAvailableToId={
+              ratingReview.superspin_available_to_id ?? null
+            }
             myPlayerId={myPlayerId}
           />
         )}
@@ -564,7 +572,10 @@ function FifotecaGamePage() {
             </Badge>
           )}
           {opponentState?.has_superspin && !opponentState?.superspin_used && (
-            <Badge variant="secondary" className="border-amber-500 text-amber-500">
+            <Badge
+              variant="secondary"
+              className="border-amber-500 text-amber-500"
+            >
               Opponent Superspin
             </Badge>
           )}
@@ -791,7 +802,13 @@ function PlayerPanel({
               </div>
               {teamItems.length > 0 || selectedTeam ? (
                 <SpinDisplay
-                  items={teamItems.length > 0 ? teamItems : selectedTeam ? [{ id: selectedTeam.id, name: selectedTeam.name }] : []}
+                  items={
+                    teamItems.length > 0
+                      ? teamItems
+                      : selectedTeam
+                        ? [{ id: selectedTeam.id, name: selectedTeam.name }]
+                        : []
+                  }
                   spinning={teamSpinning}
                   selectedItem={
                     selectedTeam

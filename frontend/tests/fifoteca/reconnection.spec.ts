@@ -9,10 +9,10 @@
 import { expect, test } from "@playwright/test"
 
 import {
-  type PlayerSetup,
   createGameRoom,
   getCurrentTurnPage,
   joinGameRoom,
+  type PlayerSetup,
   playLeaguePhase,
   setupPlayer,
   waitForGamePage,
@@ -55,7 +55,6 @@ test.describe("Reconnection", () => {
     await waitForMyTurn(idlePage)
 
     // --- Disconnect: reload the idle player's page ---
-    const idleUrl = idlePage.url()
     await idlePage.reload()
 
     // After reload, the page should reconnect via WebSocket and receive state_sync.

@@ -1,4 +1,8 @@
-import { type QueryClient, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  type QueryClient,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { useCallback, useMemo, useRef, useState } from "react"
 import useWebSocket, { ReadyState } from "react-use-websocket"
 
@@ -100,6 +104,7 @@ interface SpinResultPayload {
   spins_remaining?: number // Optional: special spins (superspin/parity) don't include this
   was_fallback?: boolean // Present only for superspin/parity spin actions
   auto_locked?: boolean // Whether the team was auto-locked (superspin)
+  special_spin_type?: "superspin" | "parity_spin" // Discriminator for special spin actions
 }
 
 interface LockResultPayload {
@@ -240,8 +245,7 @@ function processWsMessage(
                   ? payload.spins_remaining
                   : state.league_spins_remaining,
               team_spins_remaining:
-                payload.type === "team" &&
-                payload.spins_remaining !== undefined
+                payload.type === "team" && payload.spins_remaining !== undefined
                   ? payload.spins_remaining
                   : state.team_spins_remaining,
               league_locked:
@@ -249,14 +253,18 @@ function processWsMessage(
                   ? true
                   : state.league_locked,
               team_locked:
-                payload.type === "team" && payload.auto_locked
+                (payload.type === "team" && payload.auto_locked) ||
+                payload.special_spin_type === "superspin"
                   ? true
                   : state.team_locked,
               superspin_used:
-                payload.auto_locked &&
-                payload.spins_remaining === undefined
+                payload.special_spin_type === "superspin"
                   ? true
                   : state.superspin_used,
+              parity_spin_used:
+                payload.special_spin_type === "parity_spin"
+                  ? true
+                  : state.parity_spin_used,
             }
           }),
         }

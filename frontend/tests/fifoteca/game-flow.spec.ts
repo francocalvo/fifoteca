@@ -9,9 +9,9 @@
 import { expect, test } from "@playwright/test"
 
 import {
-  type PlayerSetup,
   createGameRoom,
   joinGameRoom,
+  type PlayerSetup,
   playThroughSpins,
   setupPlayer,
   submitAndConfirmScore,

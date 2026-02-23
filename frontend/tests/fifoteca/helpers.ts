@@ -6,9 +6,9 @@
  * - Frontend running on localhost:5173
  */
 import {
-  expect,
   type Browser,
   type BrowserContext,
+  expect,
   type Page,
 } from "@playwright/test"
 
@@ -233,9 +233,9 @@ export async function playTeamPhase(p1: Page, p2: Page): Promise<void> {
   })
 
   ;({ current, other } = await getCurrentTurnPage(p1, p2))
-  await expect(
-    current.getByRole("button", { name: "Lock Team" }),
-  ).toBeEnabled({ timeout: 10_000 })
+  await expect(current.getByRole("button", { name: "Lock Team" })).toBeEnabled({
+    timeout: 10_000,
+  })
   await current.getByRole("button", { name: "Lock Team" }).click()
 
   // Wait for the turn to change away from 'current'
@@ -244,9 +244,9 @@ export async function playTeamPhase(p1: Page, p2: Page): Promise<void> {
   })
 
   ;({ current, other } = await getCurrentTurnPage(p1, p2))
-  await expect(
-    current.getByRole("button", { name: "Lock Team" }),
-  ).toBeEnabled({ timeout: 10_000 })
+  await expect(current.getByRole("button", { name: "Lock Team" })).toBeEnabled({
+    timeout: 10_000,
+  })
   await current.getByRole("button", { name: "Lock Team" }).click()
 
   // Wait for Rating Review on both pages

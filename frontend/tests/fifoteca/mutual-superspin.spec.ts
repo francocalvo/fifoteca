@@ -8,10 +8,10 @@
 import { expect, test } from "@playwright/test"
 
 import {
-  type PlayerSetup,
   createGameRoom,
   getCurrentTurnPage,
   joinGameRoom,
+  type PlayerSetup,
   setupPlayer,
   waitForGamePage,
 } from "./helpers"
@@ -48,9 +48,9 @@ test.describe("Mutual superspin", () => {
       .click()
 
     // Receiver sees the dialog
-    await expect(
-      receiver.getByText("Mutual Superspin Proposal"),
-    ).toBeVisible({ timeout: 10_000 })
+    await expect(receiver.getByText("Mutual Superspin Proposal")).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Receiver declines
     await receiver.getByRole("button", { name: "Decline" }).click()

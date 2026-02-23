@@ -631,6 +631,9 @@ def _build_spin_result_payload(
         payload["spins_remaining"] = action_result.get("spins_remaining")
     elif action_type in ("use_superspin", "use_parity_spin"):
         payload["was_fallback"] = action_result.get("was_fallback")
+        payload["special_spin_type"] = (
+            "superspin" if action_type == "use_superspin" else "parity_spin"
+        )
 
     if action_type == "spin_league":
         payload["type"] = "league"

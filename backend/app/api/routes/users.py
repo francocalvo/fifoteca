@@ -47,7 +47,7 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     )
     users = session.exec(statement).all()
 
-    return UsersPublic(data=users, count=count)
+    return UsersPublic(data=[UserPublic.model_validate(u) for u in users], count=count)
 
 
 @router.post(
