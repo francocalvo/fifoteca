@@ -1,0 +1,275 @@
+Country,Team,League,Attack,Midfield,Defence
+France,Paris Saint-Germain,Ligue 1,84,86,85
+Spain,FC Barcelona,La Liga,85,87,83
+Spain,Real Madrid,La Liga,88,86,83
+England,Arsenal,Premier League,84,85,83
+England,Liverpool,Premier League,83,85,84
+England,Manchester City,Premier League,85,85,82
+Germany,FC Bayern München,Bundesliga,89,83,83
+Italy,Inter,Serie A,86,84,83
+Spain,Atlético Madrid,La Liga,85,81,82
+England,Chelsea,Premier League,79,82,80
+England,Newcastle United,Premier League,82,84,80
+England,Tottenham Hotspur,Premier League,81,81,81
+Germany,Borussia Dortmund,Bundesliga,81,80,81
+Italy,Napoli,Serie A,80,84,80
+England,Aston Villa,Premier League,84,80,80
+England,Manchester United,Premier League,81,82,79
+Germany,Bayer 04 Leverkusen,Bundesliga,81,80,79
+Germany,RB Leipzig,Bundesliga,81,78,79
+Italy,Juventus,Serie A,81,79,81
+Italy,AC Milan,Serie A,81,80,77
+England,Nottingham Forest,Premier League,79,78,80
+Italy,Atalanta,Serie A,79,80,78
+Italy,Lazio,Serie A,80,77,79
+Italy,Roma,Serie A,78,79,79
+Spain,Athletic Club,La Liga,79,81,78
+Portugal,Sporting CP,Primeira Liga,77,80,77
+England,Crystal Palace,Premier League,79,77,79
+England,Brighton & Hove Albion,Premier League,78,78,78
+England,West Ham United,Premier League,80,78,78
+Germany,Eintracht Frankfurt,Bundesliga,78,77,78
+France,AS Monaco,Ligue 1,77,79,78
+Saudi Arabia,Al Hilal,Pro League,80,79,78
+England,AFC Bournemouth,Premier League,78,78,76
+Spain,Real Betis Balompié,La Liga,77,79,77
+Spain,Real Sociedad,La Liga,79,78,76
+France,Olympique de Marseille,Ligue 1,78,79,77
+Spain,Villarreal CF,La Liga,82,78,76
+Portugal,SL Benfica,Primeira Liga,80,78,77
+Germany,VfB Stuttgart,Bundesliga,80,78,75
+Italy,Fiorentina,Serie A,79,77,74
+France,Lille OSC,Ligue 1,79,77,75
+England,Brentford,Premier League,78,77,76
+England,Fulham FC,Premier League,77,77,77
+Germany,VfL Wolfsburg,Bundesliga,77,77,76
+Italy,Bologna,Serie A,76,77,75
+Spain,RCD Mallorca,La Liga,76,76,78
+Spain,Rayo Vallecano,La Liga,73,77,77
+Spain,Girona FC,La Liga,77,76,76
+England,Everton,Premier League,76,76,76
+England,Leeds United,Premier League,75,75,76
+Saudi Arabia,Al Nassr,Pro League,79,75,74
+Germany,Borussia Mönchengladbach,Bundesliga,76,76,75
+Germany,SC Freiburg,Bundesliga,74,76,77
+Italy,Torino,Serie A,78,75,75
+France,Olympique Lyonnais,Ligue 1,77,76,75
+Spain,Getafe CF,La Liga,75,75,76
+France,OGC Nice,Ligue 1,76,76,75
+France,Stade Rennais FC,Ligue 1,73,76,75
+Argentina,River Plate,Liga Profesional de Fútbol,76,75,76
+England,Wolverhampton Wanderers,Premier League,76,78,74
+Spain,RC Celta,La Liga,78,76,76
+Spain,Valencia CF,La Liga,78,76,75
+Spain,CA Osasuna,La Liga,77,77,76
+Spain,Sevilla FC,La Liga,74,76,75
+Portugal,FC Porto,Primeira Liga,78,76,75
+Netherlands,PSV,Eredivisie,77,78,75
+Germany,SV Werder Bremen,Bundesliga,72,75,74
+Germany,TSG 1899 Hoffenheim,Bundesliga,76,73,74
+Germany,FC Augsburg,Bundesliga,74,74,76
+Argentina,Boca Juniors,Liga Profesional de Fútbol,76,75,71
+Saudi Arabia,Al Ittihad,Pro League,77,78,71
+Portugal,Sporting Clube de Braga,Primeira Liga,74,75,74
+Germany,1. FSV Mainz 05,Bundesliga,77,77,74
+Italy,Como,Serie A,75,75,73
+Netherlands,Ajax,Eredivisie,76,75,74
+Netherlands,Feyenoord,Eredivisie,74,77,74
+Saudi Arabia,Al Ahli SFC,Pro League,80,77,70
+England,Burnley,Premier League,74,74,74
+Germany,1. FC Union Berlin,Bundesliga,72,74,75
+France,RC Lens,Ligue 1,74,75,73
+France,RC Strasbourg Alsace,Ligue 1,76,74,75
+England,Sunderland,Premier League,72,75,74
+Spain,RCD Espanyol,La Liga,73,75,74
+Argentina,Racing Club,Liga Profesional de Fútbol,78,73,74
+Belgium,Club Brugge KV,Pro League,74,74,72
+Saudi Arabia,Al Qadsiah FC,Pro League,76,73,71
+France,Toulouse FC,Ligue 1,72,72,73
+Argentina,Talleres,Liga Profesional de Fútbol,73,72,72
+Germany,1. FC Köln,Bundesliga,74,73,72
+Italy,Udinese,Serie A,74,73,72
+Italy,Sassuolo,Serie A,75,72,70
+Netherlands,AZ Alkmaar,Eredivisie,73,72,73
+Belgium,KRC Genk,Pro League,74,72,75
+Spain,Deportivo Alavés,La Liga,73,74,72
+Argentina,Estudiantes de La Plata,Liga Profesional de Fútbol,73,74,72
+Italy,Genoa,Serie A,74,73,72
+Belgium,Union Saint-Gilloise,Pro League,75,72,73
+Argentina,Vélez Sarsfield,Liga Profesional de Fútbol,72,72,72
+USA,Inter Miami,Major League Soccer,78,73,70
+Germany,Hamburger SV,Bundesliga,72,72,70
+Italy,Parma,Serie A,71,73,69
+Italy,Cagliari,Serie A,71,72,74
+France,AJ Auxerre,Ligue 1,72,72,72
+Argentina,Lanús,Liga Profesional de Fútbol,72,72,70
+Spain,Levante UD,La Liga,74,73,71
+France,FC Nantes,Ligue 1,72,73,70
+Italy,Cremonese,Serie A,71,71,71
+Italy,Lecce,Serie A,72,69,71
+Netherlands,FC Twente,Eredivisie,73,71,72
+France,Stade Brestois 29,Ligue 1,75,76,72
+Germany,1. FC Heidenheim 1846,Bundesliga,73,73,72
+Argentina,Belgrano de Córdoba,Liga Profesional de Fútbol,74,70,70
+France,Paris FC,Ligue 1,71,74,71
+Italy,Hellas Verona FC,Serie A,71,72,72
+Spain,Real Oviedo,La Liga,72,72,71
+Argentina,Rosario Central,Liga Profesional de Fútbol,71,74,72
+Argentina,Independiente,Liga Profesional de Fútbol,69,72,71
+USA,Seattle Sounders FC,Major League Soccer,70,71,71
+Argentina,Newell's Old Boys,Liga Profesional de Fútbol,71,68,71
+Portugal,Vitória SC,Primeira Liga,71,72,70
+Argentina,Huracán,Liga Profesional de Fútbol,68,68,71
+Netherlands,FC Utrecht,Eredivisie,71,69,71
+Argentina,Argentinos Juniors,Liga Profesional de Fútbol,69,71,71
+France,FC Lorient,Ligue 1,71,71,70
+Germany,FC St. Pauli,Bundesliga,72,70,71
+France,Angers SCO,Ligue 1,74,70,71
+USA,FC Cincinnati,Major League Soccer,77,72,69
+Portugal,GD Estoril Praia,Primeira Liga,71,70,69
+France,FC Metz,Ligue 1,71,71,68
+Argentina,Godoy Cruz,Liga Profesional de Fútbol,67,71,70
+Argentina,Atlético Tucumán,Liga Profesional de Fútbol,72,68,69
+Argentina,Defensa y Justicia,Liga Profesional de Fútbol,69,70,70
+USA,Los Angeles FC,Major League Soccer,71,69,70
+Netherlands,NEC Nijmegen,Eredivisie,68,69,68
+Belgium,KV Mechelen,Pro League,72,70,69
+Italy,Pisa,Serie A,72,70,68
+Portugal,Santa Clara,Primeira Liga,71,69,70
+Belgium,KAA Gent,Pro League,70,68,68
+Belgium,KVC Westerlo,Pro League,73,67,71
+Portugal,Famalicão,Primeira Liga,69,71,69
+USA,Columbus Crew,Major League Soccer,66,71,69
+USA,LA Galaxy,Major League Soccer,68,72,69
+France,Le Havre AC,Ligue 1,66,72,70
+USA,Charlotte FC,Major League Soccer,66,72,67
+Spain,Elche CF,La Liga,68,69,71
+Argentina,Gimnasia y Esgrima La Plata,Liga Profesional de Fútbol,67,67,70
+Belgium,Royal Antwerp FC,Pro League,74,71,65
+USA,Atlanta United,Major League Soccer,73,72,69
+USA,Vancouver Whitecaps FC,Major League Soccer,72,70,68
+Saudi Arabia,Al Taawoun FC,Pro League,72,70,67
+Netherlands,Go Ahead Eagles,Eredivisie,67,68,71
+USA,Minnesota United FC,Major League Soccer,71,70,67
+USA,Portland Timbers,Major League Soccer,69,71,68
+Argentina,Platense,Liga Profesional de Fútbol,71,69,67
+USA,San Jose Earthquakes,Major League Soccer,75,67,66
+Argentina,CA Banfield,Liga Profesional de Fútbol,69,67,67
+Portugal,Casa Pia,Primeira Liga,69,67,70
+Portugal,Gil Vicente FC,Primeira Liga,68,68,68
+Argentina,Club Atlético Unión,Liga Profesional de Fútbol,69,70,69
+Argentina,Instituto Atlético Central Córdoba,Liga Profesional de Fútbol,67,69,67
+USA,San Diego FC,Major League Soccer,72,70,68
+USA,St. Louis CITY SC,Major League Soccer,69,68,67
+Portugal,FC Arouca,Primeira Liga,69,68,69
+Argentina,Barracas Central,Liga Profesional de Fútbol,70,69,69
+Belgium,Royal Charleroi Sporting Club,Pro League,72,67,68
+Argentina,Independiente Rivadavia,Liga Profesional de Fútbol,71,66,68
+USA,New York Red Bulls,Major League Soccer,75,69,66
+USA,New England Revolution,Major League Soccer,72,72,66
+USA,Chicago Fire,Major League Soccer,76,69,66
+USA,Sporting Kansas City,Major League Soccer,75,69,67
+Saudi Arabia,NEOM SC,Pro League,71,67,69
+USA,Orlando City SC,Major League Soccer,71,70,67
+Belgium,Standard de Liège,Pro League,71,67,67
+Portugal,Rio Ave FC,Primeira Liga,75,67,68
+USA,Austin FC,Major League Soccer,71,68,67
+USA,Nashville SC,Major League Soccer,70,70,69
+Argentina,San Lorenzo de Almagro,Liga Profesional de Fútbol,70,68,68
+Belgium,Oud-Heverlee Leuven,Pro League,63,70,69
+USA,Philadelphia Union,Major League Soccer,71,68,67
+Argentina,Central Cordoba SdE,Liga Profesional de Fútbol,69,69,67
+Argentina,Club Atlético Sarmiento,Liga Profesional de Fútbol,68,67,68
+Argentina,CA Aldosivi,Liga Profesional de Fútbol,66,68,69
+Portugal,CD Nacional,Primeira Liga,68,68,68
+Argentina,Tigre,Liga Profesional de Fútbol,67,68,70
+Portugal,Moreirense FC,Primeira Liga,67,68,67
+Netherlands,Fortuna Sittard,Eredivisie,69,68,68
+Portugal,AVS Futebol SAD,Primeira Liga,67,68,69
+USA,FC Dallas,Major League Soccer,70,68,67
+USA,Houston Dynamo,Major League Soccer,73,69,67
+USA,New York City FC,Major League Soccer,69,69,65
+Portugal,Estrela da Amadora,Primeira Liga,70,67,67
+USA,Real Salt Lake,Major League Soccer,64,70,66
+Belgium,FCV Dender EH,Pro League,68,64,66
+USA,Toronto FC,Major League Soccer,65,68,67
+Netherlands,Sparta Rotterdam,Eredivisie,68,67,67
+Netherlands,SC Heerenveen,Eredivisie,67,68,66
+Portugal,CD Tondela,Primeira Liga,66,67,67
+Belgium,Sint-Truidense VV,Pro League,67,67,66
+USA,DC United,Major League Soccer,69,64,69
+USA,Colorado Rapids,Major League Soccer,68,66,69
+Belgium,Cercle Brugge KSV,Pro League,68,64,68
+Netherlands,Heracles Almelo,Eredivisie,67,66,66
+Saudi Arabia,Al Shabab,Pro League,70,65,61
+Argentina,Club Atlético San Martín,Liga Profesional de Fútbol,63,66,66
+Netherlands,NAC Breda,Eredivisie,67,66,66
+Netherlands,PEC Zwolle,Eredivisie,66,66,66
+Netherlands,FC Groningen,Eredivisie,66,66,66
+Belgium,RAAL La Louvière,Pro League,65,65,65
+Belgium,SV Zulte Waregem,Pro League,70,64,64
+Argentina,Deportivo Riestra,Liga Profesional de Fútbol,68,63,64
+USA,CF Montréal,Major League Soccer,66,65,63
+Netherlands,FC Volendam,Eredivisie,68,64,64
+Netherlands,Excelsior,Eredivisie,61,65,66
+Portugal,Alverca,Primeira Liga,65,65,63
+Saudi Arabia,Al Khaleej,Pro League,52,68,63
+Saudi Arabia,Al Riyadh,Pro League,55,67,63
+Saudi Arabia,Al Akhdood Saudi Club,Pro League,61,65,63
+Saudi Arabia,Al Fateh,Pro League,56,67,65
+Netherlands,Telstar,Eredivisie,61,63,63
+Saudi Arabia,Al Fayha,Pro League,67,58,64
+Saudi Arabia,Damac FC,Pro League,61,64,63
+Saudi Arabia,Al-Najma SC,Pro League,68,59,59
+Saudi Arabia,Al-Kholood,Pro League,61,60,63
+Saudi Arabia,Al Hazem FC,Pro League,56,57,58
+National Team,France,International,87,83,85
+National Team,Spain,International,82,85,83
+National Team,England,International,84,84,80
+National Team,Portugal,International,84,83,82
+National Team,Germany,International,79,82,84
+National Team,Italy,International,80,83,83
+National Team,Netherlands,International,82,85,83
+National Team,Argentina,International,84,85,80
+National Team,Morocco,International,81,77,80
+National Team,Croatia,International,78,79,78
+National Team,Denmark,International,77,78,77
+National Team,Norway,International,82,78,75
+National Team,Sweden,International,87,78,77
+National Team,Ukraine,International,79,75,76
+National Team,United States,International,75,79,77
+National Team,Czechia,International,77,76,74
+National Team,Poland,International,79,75,75
+National Team,Scotland,International,77,77,74
+National Team,Mexico,International,78,76,74
+National Team,Ghana,International,80,76,74
+National Team,Republic of Ireland,International,73,73,74
+National Team,Wales,International,72,73,75
+National Team,Hungary,International,74,74,74
+National Team,Romania,International,71,74,73
+National Team,Finland,International,72,73,67
+National Team,Iceland,International,76,71,69
+National Team,Northern Ireland,International,66,69,70
+National Team,Qatar,International,72,71,68
+Other Teams,AEK Athens,Various,75,75,74
+Other Teams,Al Ain FC,Various,77,71,68
+Other Teams,APOEL FC,Various,68,68,64
+Other Teams,Dinamo Zagreb,Various,69,71,69
+Other Teams,Dinamo Kiev,Various,73,73,72
+Other Teams,Forencvárosi TC,Various,70,71,69
+Other Teams,Hajduk Split,Various,70,67,69
+Other Teams,HJK Helsinki,Various,66,65,62
+Other Teams,Olympiacos FC,Various,77,76,74
+Other Teams,Panathinaikos,Various,74,73,72
+Other Teams,PAOK FC,Various,69,75,73
+Other Teams,Qarabag FK,Various,68,69,67
+Other Teams,Shakhtar Donetsk,Various,71,74,73
+Other Teams,Slavia Praga,Various,74,74,74
+Other Teams,Sparta Praga,Various,74,71,73
+Other Teams,Universidad Católica,Various,69,69,66
+Other Teams,Viktoria Pilsen,Various,73,71,72
+Other Teams,Soccer Aid,Various,88,89,89
+Other Teams,Zlatan FC,Various,91,91,91
+Other Teams,Clasicos XI,Various,92,92,91
+Other Teams,MLS All Stars,Various,76,76,71
+
