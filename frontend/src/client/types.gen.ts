@@ -9,6 +9,137 @@ export type Body_login_login_access_token = {
     client_secret?: (string | null);
 };
 
+export type FifaLeaguePublic = {
+    id: string;
+    name: string;
+    country: string;
+};
+
+export type FifaTeamPublic = {
+    id: string;
+    name: string;
+    league_id: string;
+    attack_rating: number;
+    midfield_rating: number;
+    defense_rating: number;
+    overall_rating: number;
+};
+
+/**
+ * Detailed match schema (with team and submitter info).
+ */
+export type FifotecaMatchDetail = {
+    id: string;
+    room_id: string;
+    round_number: number;
+    player1_id: string;
+    player2_id: string;
+    player1_team_id: string;
+    player2_team_id: string;
+    player1_league_id: string;
+    player2_league_id: string;
+    player1_score: (number | null);
+    player2_score: (number | null);
+    rating_difference: number;
+    protection_awarded_to_id: (string | null);
+    submitted_by_id: (string | null);
+    confirmed: boolean;
+    created_at: (string | null);
+};
+
+/**
+ * Enriched match history from current player's perspective.
+ */
+export type FifotecaMatchHistoryPublic = {
+    id: string;
+    created_at: (string | null);
+    round_number: number;
+    rating_difference: number;
+    confirmed: boolean;
+    opponent_display_name: string;
+    my_team_name: string;
+    opponent_team_name: string;
+    my_score: (number | null);
+    opponent_score: (number | null);
+    result: string;
+};
+
+/**
+ * Public match schema (minimal).
+ */
+export type FifotecaMatchPublic = {
+    id: string;
+    room_id: string;
+    round_number: number;
+    player1_id: string;
+    player2_id: string;
+    player1_score: (number | null);
+    player2_score: (number | null);
+    rating_difference: number;
+    protection_awarded_to_id: (string | null);
+    confirmed: boolean;
+    created_at: (string | null);
+};
+
+export type FifotecaPlayerPublic = {
+    id: string;
+    user_id: string;
+    display_name: string;
+    total_wins: number;
+    total_losses: number;
+    total_draws: number;
+    has_protection: boolean;
+};
+
+export type FifotecaPlayerStatePublic = {
+    id: string;
+    room_id: string;
+    player_id: string;
+    round_number: number;
+    phase: string;
+    league_spins_remaining: number;
+    team_spins_remaining: number;
+    current_league_id: (string | null);
+    current_team_id: (string | null);
+    league_locked: boolean;
+    team_locked: boolean;
+    has_superspin: boolean;
+    superspin_used: boolean;
+    has_parity_spin: boolean;
+    parity_spin_used: boolean;
+};
+
+export type FifotecaRoomPublic = {
+    id: string;
+    code: string;
+    ruleset: string;
+    status: string;
+    player1_id: string;
+    player2_id: (string | null);
+    current_turn_player_id: (string | null);
+    first_player_id: (string | null);
+    round_number: number;
+    mutual_superspin_active: boolean;
+    expires_at: string;
+    created_at: (string | null);
+};
+
+export type FifotecaRoomWithStatesPublic = {
+    id: string;
+    code: string;
+    ruleset: string;
+    status: string;
+    player1_id: string;
+    player2_id: (string | null);
+    current_turn_player_id: (string | null);
+    first_player_id: (string | null);
+    round_number: number;
+    mutual_superspin_active: boolean;
+    expires_at: string;
+    created_at: (string | null);
+    player_states: Array<FifotecaPlayerStatePublic>;
+};
+
 export type HTTPValidationError = {
     detail?: Array<ValidationError>;
 };
@@ -34,6 +165,22 @@ export type ItemsPublic = {
 export type ItemUpdate = {
     title?: (string | null);
     description?: (string | null);
+};
+
+/**
+ * List of matches for current player.
+ */
+export type MatchesPublic = {
+    data: Array<FifotecaMatchHistoryPublic>;
+    count: number;
+};
+
+/**
+ * Request schema for submitting match scores.
+ */
+export type MatchScoreSubmit = {
+    player1_score: number;
+    player2_score: number;
 };
 
 export type Message = {
@@ -112,6 +259,74 @@ export type ValidationError = {
         [key: string]: unknown;
     };
 };
+
+export type FifotecaReadLeaguesResponse = (Array<FifaLeaguePublic>);
+
+export type FifotecaReadLeagueTeamsData = {
+    id: string;
+};
+
+export type FifotecaReadLeagueTeamsResponse = (Array<FifaTeamPublic>);
+
+export type FifotecaSubmitMatchScoreData = {
+    id: string;
+    requestBody: MatchScoreSubmit;
+};
+
+export type FifotecaSubmitMatchScoreResponse = (FifotecaMatchPublic);
+
+export type FifotecaConfirmMatchResultData = {
+    id: string;
+};
+
+export type FifotecaConfirmMatchResultResponse = (FifotecaMatchPublic);
+
+export type FifotecaListMatchesResponse = (MatchesPublic);
+
+export type FifotecaGetMatchData = {
+    id: string;
+};
+
+export type FifotecaGetMatchResponse = (FifotecaMatchDetail);
+
+export type FifotecaGetPlayerProfileResponse = (FifotecaPlayerPublic);
+
+export type FifotecaCreateOrGetPlayerProfileResponse = (FifotecaPlayerPublic);
+
+export type FifotecaCreateRoomData = {
+    ruleset?: string;
+};
+
+export type FifotecaCreateRoomResponse = (FifotecaRoomPublic);
+
+export type FifotecaJoinRoomData = {
+    code: string;
+};
+
+export type FifotecaJoinRoomResponse = (FifotecaRoomPublic);
+
+export type FifotecaGetRoomData = {
+    code: string;
+};
+
+export type FifotecaGetRoomResponse = (FifotecaRoomWithStatesPublic);
+
+export type FifotecaReadTeamsData = {
+    /**
+     * Filter by league ID
+     */
+    leagueId?: (string | null);
+    /**
+     * Maximum overall rating
+     */
+    maxRating?: (number | null);
+    /**
+     * Minimum overall rating
+     */
+    minRating?: (number | null);
+};
+
+export type FifotecaReadTeamsResponse = (Array<FifaTeamPublic>);
 
 export type ItemsReadItemsData = {
     limit?: number;

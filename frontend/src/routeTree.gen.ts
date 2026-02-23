@@ -18,6 +18,11 @@ import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutFifotecaIndexRouteImport } from './routes/_layout/fifoteca/index'
+import { Route as LayoutFifotecaHistoryRouteImport } from './routes/_layout/fifoteca/history'
+import { Route as LayoutFifotecaMatchMatchIdRouteImport } from './routes/_layout/fifoteca/match.$matchId'
+import { Route as LayoutFifotecaLobbyRoomCodeRouteImport } from './routes/_layout/fifoteca/lobby.$roomCode'
+import { Route as LayoutFifotecaGameRoomCodeRouteImport } from './routes/_layout/fifoteca/game.$roomCode'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -63,8 +68,37 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutFifotecaIndexRoute = LayoutFifotecaIndexRouteImport.update({
+  id: '/fifoteca/',
+  path: '/fifoteca/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutFifotecaHistoryRoute = LayoutFifotecaHistoryRouteImport.update({
+  id: '/fifoteca/history',
+  path: '/fifoteca/history',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutFifotecaMatchMatchIdRoute =
+  LayoutFifotecaMatchMatchIdRouteImport.update({
+    id: '/fifoteca/match/$matchId',
+    path: '/fifoteca/match/$matchId',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutFifotecaLobbyRoomCodeRoute =
+  LayoutFifotecaLobbyRoomCodeRouteImport.update({
+    id: '/fifoteca/lobby/$roomCode',
+    path: '/fifoteca/lobby/$roomCode',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutFifotecaGameRoomCodeRoute =
+  LayoutFifotecaGameRoomCodeRouteImport.update({
+    id: '/fifoteca/game/$roomCode',
+    path: '/fifoteca/game/$roomCode',
+    getParentRoute: () => LayoutRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof LayoutIndexRoute
   '/login': typeof LoginRoute
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -72,7 +106,11 @@ export interface FileRoutesByFullPath {
   '/admin': typeof LayoutAdminRoute
   '/items': typeof LayoutItemsRoute
   '/settings': typeof LayoutSettingsRoute
-  '/': typeof LayoutIndexRoute
+  '/fifoteca/history': typeof LayoutFifotecaHistoryRoute
+  '/fifoteca/': typeof LayoutFifotecaIndexRoute
+  '/fifoteca/game/$roomCode': typeof LayoutFifotecaGameRoomCodeRoute
+  '/fifoteca/lobby/$roomCode': typeof LayoutFifotecaLobbyRoomCodeRoute
+  '/fifoteca/match/$matchId': typeof LayoutFifotecaMatchMatchIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -83,6 +121,11 @@ export interface FileRoutesByTo {
   '/items': typeof LayoutItemsRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
+  '/fifoteca/history': typeof LayoutFifotecaHistoryRoute
+  '/fifoteca': typeof LayoutFifotecaIndexRoute
+  '/fifoteca/game/$roomCode': typeof LayoutFifotecaGameRoomCodeRoute
+  '/fifoteca/lobby/$roomCode': typeof LayoutFifotecaLobbyRoomCodeRoute
+  '/fifoteca/match/$matchId': typeof LayoutFifotecaMatchMatchIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,10 +138,16 @@ export interface FileRoutesById {
   '/_layout/items': typeof LayoutItemsRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/fifoteca/history': typeof LayoutFifotecaHistoryRoute
+  '/_layout/fifoteca/': typeof LayoutFifotecaIndexRoute
+  '/_layout/fifoteca/game/$roomCode': typeof LayoutFifotecaGameRoomCodeRoute
+  '/_layout/fifoteca/lobby/$roomCode': typeof LayoutFifotecaLobbyRoomCodeRoute
+  '/_layout/fifoteca/match/$matchId': typeof LayoutFifotecaMatchMatchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/login'
     | '/recover-password'
     | '/reset-password'
@@ -106,7 +155,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/items'
     | '/settings'
-    | '/'
+    | '/fifoteca/history'
+    | '/fifoteca/'
+    | '/fifoteca/game/$roomCode'
+    | '/fifoteca/lobby/$roomCode'
+    | '/fifoteca/match/$matchId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -117,6 +170,11 @@ export interface FileRouteTypes {
     | '/items'
     | '/settings'
     | '/'
+    | '/fifoteca/history'
+    | '/fifoteca'
+    | '/fifoteca/game/$roomCode'
+    | '/fifoteca/lobby/$roomCode'
+    | '/fifoteca/match/$matchId'
   id:
     | '__root__'
     | '/_layout'
@@ -128,6 +186,11 @@ export interface FileRouteTypes {
     | '/_layout/items'
     | '/_layout/settings'
     | '/_layout/'
+    | '/_layout/fifoteca/history'
+    | '/_layout/fifoteca/'
+    | '/_layout/fifoteca/game/$roomCode'
+    | '/_layout/fifoteca/lobby/$roomCode'
+    | '/_layout/fifoteca/match/$matchId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,7 +234,7 @@ declare module '@tanstack/react-router' {
     '/_layout': {
       id: '/_layout'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof LayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -203,6 +266,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/fifoteca/': {
+      id: '/_layout/fifoteca/'
+      path: '/fifoteca'
+      fullPath: '/fifoteca/'
+      preLoaderRoute: typeof LayoutFifotecaIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/fifoteca/history': {
+      id: '/_layout/fifoteca/history'
+      path: '/fifoteca/history'
+      fullPath: '/fifoteca/history'
+      preLoaderRoute: typeof LayoutFifotecaHistoryRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/fifoteca/match/$matchId': {
+      id: '/_layout/fifoteca/match/$matchId'
+      path: '/fifoteca/match/$matchId'
+      fullPath: '/fifoteca/match/$matchId'
+      preLoaderRoute: typeof LayoutFifotecaMatchMatchIdRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/fifoteca/lobby/$roomCode': {
+      id: '/_layout/fifoteca/lobby/$roomCode'
+      path: '/fifoteca/lobby/$roomCode'
+      fullPath: '/fifoteca/lobby/$roomCode'
+      preLoaderRoute: typeof LayoutFifotecaLobbyRoomCodeRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/fifoteca/game/$roomCode': {
+      id: '/_layout/fifoteca/game/$roomCode'
+      path: '/fifoteca/game/$roomCode'
+      fullPath: '/fifoteca/game/$roomCode'
+      preLoaderRoute: typeof LayoutFifotecaGameRoomCodeRouteImport
+      parentRoute: typeof LayoutRoute
+    }
   }
 }
 
@@ -211,6 +309,11 @@ interface LayoutRouteChildren {
   LayoutItemsRoute: typeof LayoutItemsRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
+  LayoutFifotecaHistoryRoute: typeof LayoutFifotecaHistoryRoute
+  LayoutFifotecaIndexRoute: typeof LayoutFifotecaIndexRoute
+  LayoutFifotecaGameRoomCodeRoute: typeof LayoutFifotecaGameRoomCodeRoute
+  LayoutFifotecaLobbyRoomCodeRoute: typeof LayoutFifotecaLobbyRoomCodeRoute
+  LayoutFifotecaMatchMatchIdRoute: typeof LayoutFifotecaMatchMatchIdRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
@@ -218,6 +321,11 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutItemsRoute: LayoutItemsRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutIndexRoute: LayoutIndexRoute,
+  LayoutFifotecaHistoryRoute: LayoutFifotecaHistoryRoute,
+  LayoutFifotecaIndexRoute: LayoutFifotecaIndexRoute,
+  LayoutFifotecaGameRoomCodeRoute: LayoutFifotecaGameRoomCodeRoute,
+  LayoutFifotecaLobbyRoomCodeRoute: LayoutFifotecaLobbyRoomCodeRoute,
+  LayoutFifotecaMatchMatchIdRoute: LayoutFifotecaMatchMatchIdRoute,
 }
 
 const LayoutRouteWithChildren =

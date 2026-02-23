@@ -3,7 +3,313 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { FifotecaReadLeaguesResponse, FifotecaReadLeagueTeamsData, FifotecaReadLeagueTeamsResponse, FifotecaSubmitMatchScoreData, FifotecaSubmitMatchScoreResponse, FifotecaConfirmMatchResultData, FifotecaConfirmMatchResultResponse, FifotecaListMatchesResponse, FifotecaGetMatchData, FifotecaGetMatchResponse, FifotecaGetPlayerProfileResponse, FifotecaCreateOrGetPlayerProfileResponse, FifotecaCreateRoomData, FifotecaCreateRoomResponse, FifotecaJoinRoomData, FifotecaJoinRoomResponse, FifotecaGetRoomData, FifotecaGetRoomResponse, FifotecaReadTeamsData, FifotecaReadTeamsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+
+export class FifotecaService {
+    /**
+     * Read Leagues
+     * Retrieve all leagues.
+     * @returns FifaLeaguePublic Successful Response
+     * @throws ApiError
+     */
+    public static readLeagues(): CancelablePromise<FifotecaReadLeaguesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/leagues/'
+        });
+    }
+    
+    /**
+     * Read League Teams
+     * Retrieve all teams in a specific league.
+     * @param data The data for the request.
+     * @param data.id
+     * @returns FifaTeamPublic Successful Response
+     * @throws ApiError
+     */
+    public static readLeagueTeams(data: FifotecaReadLeagueTeamsData): CancelablePromise<FifotecaReadLeagueTeamsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/leagues/{id}/teams',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Submit Match Score
+     * Submit scores for a match.
+     *
+     * Only participants can submit scores. Scores can only be submitted once
+     * while the room is in MATCH_IN_PROGRESS status.
+     *
+     * Args:
+     * id: The match ID.
+     * score_data: The scores (player1_score, player2_score).
+     * current_user: The authenticated user.
+     * session: Database session.
+     *
+     * Returns:
+     * The updated match.
+     *
+     * Raises:
+     * HTTPException: If player not participant (403).
+     * HTTPException: If match already confirmed (400).
+     * HTTPException: If scores already submitted (400).
+     * HTTPException: If room not in MATCH_IN_PROGRESS (400).
+     * @param data The data for the request.
+     * @param data.id
+     * @param data.requestBody
+     * @returns FifotecaMatchPublic Successful Response
+     * @throws ApiError
+     */
+    public static submitMatchScore(data: FifotecaSubmitMatchScoreData): CancelablePromise<FifotecaSubmitMatchScoreResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/matches/{id}/score',
+            path: {
+                id: data.id
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Confirm Match Result
+     * Confirm match result and update player statistics.
+     *
+     * Only the non-submitting participant can confirm. Confirmation updates
+     * player win/loss/draw totals and sets room to COMPLETED.
+     *
+     * Args:
+     * id: The match ID.
+     * current_user: The authenticated user.
+     * session: Database session.
+     *
+     * Returns:
+     * The confirmed match.
+     *
+     * Raises:
+     * HTTPException: If player not participant (403).
+     * HTTPException: If scores not submitted (400).
+     * HTTPException: If match already confirmed (400).
+     * HTTPException: If submitting player tries to confirm (403).
+     * @param data The data for the request.
+     * @param data.id
+     * @returns FifotecaMatchPublic Successful Response
+     * @throws ApiError
+     */
+    public static confirmMatchResult(data: FifotecaConfirmMatchResultData): CancelablePromise<FifotecaConfirmMatchResultResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/matches/{id}/confirm',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * List Matches
+     * List all matches for the current player.
+     *
+     * Returns matches where the player is either player1 or player2,
+     * sorted by creation date (newest first). Each match includes
+     * enriched data from the current player's perspective.
+     *
+     * Args:
+     * current_user: The authenticated user.
+     * session: Database session.
+     *
+     * Returns:
+     * List of matches with opponent/team names and result from player's view.
+     * @returns MatchesPublic Successful Response
+     * @throws ApiError
+     */
+    public static listMatches(): CancelablePromise<FifotecaListMatchesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/matches'
+        });
+    }
+    
+    /**
+     * Get Match
+     * Get detailed match information.
+     *
+     * Only participants can view match details.
+     *
+     * Args:
+     * id: The match ID.
+     * current_user: The authenticated user.
+     * session: Database session.
+     *
+     * Returns:
+     * Detailed match information.
+     *
+     * Raises:
+     * HTTPException: If player not participant (403).
+     * HTTPException: If match not found (404).
+     * @param data The data for the request.
+     * @param data.id
+     * @returns FifotecaMatchDetail Successful Response
+     * @throws ApiError
+     */
+    public static getMatch(data: FifotecaGetMatchData): CancelablePromise<FifotecaGetMatchResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/matches/{id}',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Player Profile
+     * Get the current user's player profile with stats.
+     *
+     * Returns 404 if profile does not exist (use POST /me to create).
+     * @returns FifotecaPlayerPublic Successful Response
+     * @throws ApiError
+     */
+    public static getPlayerProfile(): CancelablePromise<FifotecaGetPlayerProfileResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/players/me'
+        });
+    }
+    
+    /**
+     * Create Or Get Player Profile
+     * Create or get the current user's player profile.
+     *
+     * If a profile already exists for the current user, returns the existing profile.
+     * Otherwise, creates a new profile with default stats (0/0/0).
+     *
+     * Display name is derived from user.full_name or user.email.
+     * @returns FifotecaPlayerPublic Successful Response
+     * @throws ApiError
+     */
+    public static createOrGetPlayerProfile(): CancelablePromise<FifotecaCreateOrGetPlayerProfileResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/players/me'
+        });
+    }
+    
+    /**
+     * Create Room
+     * Create a new game room.
+     *
+     * Generates a unique 6-character room code and initializes the room
+     * in WAITING status. Room expires after 60 minutes.
+     * @param data The data for the request.
+     * @param data.ruleset
+     * @returns FifotecaRoomPublic Successful Response
+     * @throws ApiError
+     */
+    public static createRoom(data: FifotecaCreateRoomData = {}): CancelablePromise<FifotecaCreateRoomResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/rooms',
+            query: {
+                ruleset: data.ruleset
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Join Room
+     * Join an existing game room.
+     *
+     * Validates that the room exists, is in WAITING status, is not full,
+     * and the player is not trying to join their own room.
+     * On successful join, initializes player states for both players.
+     * @param data The data for the request.
+     * @param data.code
+     * @returns FifotecaRoomPublic Successful Response
+     * @throws ApiError
+     */
+    public static joinRoom(data: FifotecaJoinRoomData): CancelablePromise<FifotecaJoinRoomResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/rooms/join/{code}',
+            path: {
+                code: data.code
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Room
+     * Get room state including player states.
+     *
+     * Used for reconnection and state synchronization.
+     * Returns 404 if room doesn't exist or has expired.
+     * @param data The data for the request.
+     * @param data.code
+     * @returns FifotecaRoomWithStatesPublic Successful Response
+     * @throws ApiError
+     */
+    public static getRoom(data: FifotecaGetRoomData): CancelablePromise<FifotecaGetRoomResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/rooms/{code}',
+            path: {
+                code: data.code
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Teams
+     * Retrieve teams with optional filtering by league and rating range.
+     * @param data The data for the request.
+     * @param data.leagueId Filter by league ID
+     * @param data.minRating Minimum overall rating
+     * @param data.maxRating Maximum overall rating
+     * @returns FifaTeamPublic Successful Response
+     * @throws ApiError
+     */
+    public static readTeams(data: FifotecaReadTeamsData = {}): CancelablePromise<FifotecaReadTeamsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/teams/',
+            query: {
+                league_id: data.leagueId,
+                min_rating: data.minRating,
+                max_rating: data.maxRating
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
 
 export class ItemsService {
     /**
@@ -116,6 +422,42 @@ export class ItemsService {
     }
 }
 
+export class LeaguesService {
+    /**
+     * Read Leagues
+     * Retrieve all leagues.
+     * @returns FifaLeaguePublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaReadLeagues(): CancelablePromise<FifotecaReadLeaguesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/leagues/'
+        });
+    }
+    
+    /**
+     * Read League Teams
+     * Retrieve all teams in a specific league.
+     * @param data The data for the request.
+     * @param data.id
+     * @returns FifaTeamPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaReadLeagueTeams(data: FifotecaReadLeagueTeamsData): CancelablePromise<FifotecaReadLeagueTeamsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/leagues/{id}/teams',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
 export class LoginService {
     /**
      * Login Access Token
@@ -213,6 +555,182 @@ export class LoginService {
     }
 }
 
+export class MatchesService {
+    /**
+     * Submit Match Score
+     * Submit scores for a match.
+     *
+     * Only participants can submit scores. Scores can only be submitted once
+     * while the room is in MATCH_IN_PROGRESS status.
+     *
+     * Args:
+     * id: The match ID.
+     * score_data: The scores (player1_score, player2_score).
+     * current_user: The authenticated user.
+     * session: Database session.
+     *
+     * Returns:
+     * The updated match.
+     *
+     * Raises:
+     * HTTPException: If player not participant (403).
+     * HTTPException: If match already confirmed (400).
+     * HTTPException: If scores already submitted (400).
+     * HTTPException: If room not in MATCH_IN_PROGRESS (400).
+     * @param data The data for the request.
+     * @param data.id
+     * @param data.requestBody
+     * @returns FifotecaMatchPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaSubmitMatchScore(data: FifotecaSubmitMatchScoreData): CancelablePromise<FifotecaSubmitMatchScoreResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/matches/{id}/score',
+            path: {
+                id: data.id
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Confirm Match Result
+     * Confirm match result and update player statistics.
+     *
+     * Only the non-submitting participant can confirm. Confirmation updates
+     * player win/loss/draw totals and sets room to COMPLETED.
+     *
+     * Args:
+     * id: The match ID.
+     * current_user: The authenticated user.
+     * session: Database session.
+     *
+     * Returns:
+     * The confirmed match.
+     *
+     * Raises:
+     * HTTPException: If player not participant (403).
+     * HTTPException: If scores not submitted (400).
+     * HTTPException: If match already confirmed (400).
+     * HTTPException: If submitting player tries to confirm (403).
+     * @param data The data for the request.
+     * @param data.id
+     * @returns FifotecaMatchPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaConfirmMatchResult(data: FifotecaConfirmMatchResultData): CancelablePromise<FifotecaConfirmMatchResultResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/matches/{id}/confirm',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * List Matches
+     * List all matches for the current player.
+     *
+     * Returns matches where the player is either player1 or player2,
+     * sorted by creation date (newest first). Each match includes
+     * enriched data from the current player's perspective.
+     *
+     * Args:
+     * current_user: The authenticated user.
+     * session: Database session.
+     *
+     * Returns:
+     * List of matches with opponent/team names and result from player's view.
+     * @returns MatchesPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaListMatches(): CancelablePromise<FifotecaListMatchesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/matches'
+        });
+    }
+    
+    /**
+     * Get Match
+     * Get detailed match information.
+     *
+     * Only participants can view match details.
+     *
+     * Args:
+     * id: The match ID.
+     * current_user: The authenticated user.
+     * session: Database session.
+     *
+     * Returns:
+     * Detailed match information.
+     *
+     * Raises:
+     * HTTPException: If player not participant (403).
+     * HTTPException: If match not found (404).
+     * @param data The data for the request.
+     * @param data.id
+     * @returns FifotecaMatchDetail Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaGetMatch(data: FifotecaGetMatchData): CancelablePromise<FifotecaGetMatchResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/matches/{id}',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class PlayersService {
+    /**
+     * Get Player Profile
+     * Get the current user's player profile with stats.
+     *
+     * Returns 404 if profile does not exist (use POST /me to create).
+     * @returns FifotecaPlayerPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaGetPlayerProfile(): CancelablePromise<FifotecaGetPlayerProfileResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/players/me'
+        });
+    }
+    
+    /**
+     * Create Or Get Player Profile
+     * Create or get the current user's player profile.
+     *
+     * If a profile already exists for the current user, returns the existing profile.
+     * Otherwise, creates a new profile with default stats (0/0/0).
+     *
+     * Display name is derived from user.full_name or user.email.
+     * @returns FifotecaPlayerPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaCreateOrGetPlayerProfile(): CancelablePromise<FifotecaCreateOrGetPlayerProfileResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/players/me'
+        });
+    }
+}
+
 export class PrivateService {
     /**
      * Create User
@@ -228,6 +746,108 @@ export class PrivateService {
             url: '/api/v1/private/users/',
             body: data.requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class RoomsService {
+    /**
+     * Create Room
+     * Create a new game room.
+     *
+     * Generates a unique 6-character room code and initializes the room
+     * in WAITING status. Room expires after 60 minutes.
+     * @param data The data for the request.
+     * @param data.ruleset
+     * @returns FifotecaRoomPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaCreateRoom(data: FifotecaCreateRoomData = {}): CancelablePromise<FifotecaCreateRoomResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/rooms',
+            query: {
+                ruleset: data.ruleset
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Join Room
+     * Join an existing game room.
+     *
+     * Validates that the room exists, is in WAITING status, is not full,
+     * and the player is not trying to join their own room.
+     * On successful join, initializes player states for both players.
+     * @param data The data for the request.
+     * @param data.code
+     * @returns FifotecaRoomPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaJoinRoom(data: FifotecaJoinRoomData): CancelablePromise<FifotecaJoinRoomResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/rooms/join/{code}',
+            path: {
+                code: data.code
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Room
+     * Get room state including player states.
+     *
+     * Used for reconnection and state synchronization.
+     * Returns 404 if room doesn't exist or has expired.
+     * @param data The data for the request.
+     * @param data.code
+     * @returns FifotecaRoomWithStatesPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaGetRoom(data: FifotecaGetRoomData): CancelablePromise<FifotecaGetRoomResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/rooms/{code}',
+            path: {
+                code: data.code
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class TeamsService {
+    /**
+     * Read Teams
+     * Retrieve teams with optional filtering by league and rating range.
+     * @param data The data for the request.
+     * @param data.leagueId Filter by league ID
+     * @param data.minRating Minimum overall rating
+     * @param data.maxRating Maximum overall rating
+     * @returns FifaTeamPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaReadTeams(data: FifotecaReadTeamsData = {}): CancelablePromise<FifotecaReadTeamsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/teams/',
+            query: {
+                league_id: data.leagueId,
+                min_rating: data.minRating,
+                max_rating: data.maxRating
+            },
             errors: {
                 422: 'Validation Error'
             }

@@ -57,6 +57,661 @@ export const Body_login_login_access_tokenSchema = {
     title: 'Body_login-login_access_token'
 } as const;
 
+export const FifaLeaguePublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        country: {
+            type: 'string',
+            title: 'Country'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name', 'country'],
+    title: 'FifaLeaguePublic'
+} as const;
+
+export const FifaTeamPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        league_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'League Id'
+        },
+        attack_rating: {
+            type: 'integer',
+            title: 'Attack Rating'
+        },
+        midfield_rating: {
+            type: 'integer',
+            title: 'Midfield Rating'
+        },
+        defense_rating: {
+            type: 'integer',
+            title: 'Defense Rating'
+        },
+        overall_rating: {
+            type: 'integer',
+            title: 'Overall Rating'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name', 'league_id', 'attack_rating', 'midfield_rating', 'defense_rating', 'overall_rating'],
+    title: 'FifaTeamPublic'
+} as const;
+
+export const FifotecaMatchDetailSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        room_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Room Id'
+        },
+        round_number: {
+            type: 'integer',
+            title: 'Round Number'
+        },
+        player1_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Player1 Id'
+        },
+        player2_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Player2 Id'
+        },
+        player1_team_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Player1 Team Id'
+        },
+        player2_team_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Player2 Team Id'
+        },
+        player1_league_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Player1 League Id'
+        },
+        player2_league_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Player2 League Id'
+        },
+        player1_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Player1 Score'
+        },
+        player2_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Player2 Score'
+        },
+        rating_difference: {
+            type: 'integer',
+            title: 'Rating Difference'
+        },
+        protection_awarded_to_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Protection Awarded To Id'
+        },
+        submitted_by_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Submitted By Id'
+        },
+        confirmed: {
+            type: 'boolean',
+            title: 'Confirmed'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'room_id', 'round_number', 'player1_id', 'player2_id', 'player1_team_id', 'player2_team_id', 'player1_league_id', 'player2_league_id', 'player1_score', 'player2_score', 'rating_difference', 'protection_awarded_to_id', 'submitted_by_id', 'confirmed', 'created_at'],
+    title: 'FifotecaMatchDetail',
+    description: 'Detailed match schema (with team and submitter info).'
+} as const;
+
+export const FifotecaMatchHistoryPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        round_number: {
+            type: 'integer',
+            title: 'Round Number'
+        },
+        rating_difference: {
+            type: 'integer',
+            title: 'Rating Difference'
+        },
+        confirmed: {
+            type: 'boolean',
+            title: 'Confirmed'
+        },
+        opponent_display_name: {
+            type: 'string',
+            title: 'Opponent Display Name'
+        },
+        my_team_name: {
+            type: 'string',
+            title: 'My Team Name'
+        },
+        opponent_team_name: {
+            type: 'string',
+            title: 'Opponent Team Name'
+        },
+        my_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'My Score'
+        },
+        opponent_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Opponent Score'
+        },
+        result: {
+            type: 'string',
+            title: 'Result'
+        }
+    },
+    type: 'object',
+    required: ['id', 'created_at', 'round_number', 'rating_difference', 'confirmed', 'opponent_display_name', 'my_team_name', 'opponent_team_name', 'my_score', 'opponent_score', 'result'],
+    title: 'FifotecaMatchHistoryPublic',
+    description: "Enriched match history from current player's perspective."
+} as const;
+
+export const FifotecaMatchPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        room_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Room Id'
+        },
+        round_number: {
+            type: 'integer',
+            title: 'Round Number'
+        },
+        player1_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Player1 Id'
+        },
+        player2_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Player2 Id'
+        },
+        player1_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Player1 Score'
+        },
+        player2_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Player2 Score'
+        },
+        rating_difference: {
+            type: 'integer',
+            title: 'Rating Difference'
+        },
+        protection_awarded_to_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Protection Awarded To Id'
+        },
+        confirmed: {
+            type: 'boolean',
+            title: 'Confirmed'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'room_id', 'round_number', 'player1_id', 'player2_id', 'player1_score', 'player2_score', 'rating_difference', 'protection_awarded_to_id', 'confirmed', 'created_at'],
+    title: 'FifotecaMatchPublic',
+    description: 'Public match schema (minimal).'
+} as const;
+
+export const FifotecaPlayerPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        user_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'User Id'
+        },
+        display_name: {
+            type: 'string',
+            title: 'Display Name'
+        },
+        total_wins: {
+            type: 'integer',
+            title: 'Total Wins'
+        },
+        total_losses: {
+            type: 'integer',
+            title: 'Total Losses'
+        },
+        total_draws: {
+            type: 'integer',
+            title: 'Total Draws'
+        },
+        has_protection: {
+            type: 'boolean',
+            title: 'Has Protection'
+        }
+    },
+    type: 'object',
+    required: ['id', 'user_id', 'display_name', 'total_wins', 'total_losses', 'total_draws', 'has_protection'],
+    title: 'FifotecaPlayerPublic'
+} as const;
+
+export const FifotecaPlayerStatePublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        room_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Room Id'
+        },
+        player_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Player Id'
+        },
+        round_number: {
+            type: 'integer',
+            title: 'Round Number'
+        },
+        phase: {
+            type: 'string',
+            title: 'Phase'
+        },
+        league_spins_remaining: {
+            type: 'integer',
+            title: 'League Spins Remaining'
+        },
+        team_spins_remaining: {
+            type: 'integer',
+            title: 'Team Spins Remaining'
+        },
+        current_league_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Current League Id'
+        },
+        current_team_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Current Team Id'
+        },
+        league_locked: {
+            type: 'boolean',
+            title: 'League Locked'
+        },
+        team_locked: {
+            type: 'boolean',
+            title: 'Team Locked'
+        },
+        has_superspin: {
+            type: 'boolean',
+            title: 'Has Superspin'
+        },
+        superspin_used: {
+            type: 'boolean',
+            title: 'Superspin Used'
+        },
+        has_parity_spin: {
+            type: 'boolean',
+            title: 'Has Parity Spin'
+        },
+        parity_spin_used: {
+            type: 'boolean',
+            title: 'Parity Spin Used'
+        }
+    },
+    type: 'object',
+    required: ['id', 'room_id', 'player_id', 'round_number', 'phase', 'league_spins_remaining', 'team_spins_remaining', 'current_league_id', 'current_team_id', 'league_locked', 'team_locked', 'has_superspin', 'superspin_used', 'has_parity_spin', 'parity_spin_used'],
+    title: 'FifotecaPlayerStatePublic'
+} as const;
+
+export const FifotecaRoomPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        code: {
+            type: 'string',
+            title: 'Code'
+        },
+        ruleset: {
+            type: 'string',
+            title: 'Ruleset'
+        },
+        status: {
+            type: 'string',
+            title: 'Status'
+        },
+        player1_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Player1 Id'
+        },
+        player2_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Player2 Id'
+        },
+        current_turn_player_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Current Turn Player Id'
+        },
+        first_player_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'First Player Id'
+        },
+        round_number: {
+            type: 'integer',
+            title: 'Round Number'
+        },
+        mutual_superspin_active: {
+            type: 'boolean',
+            title: 'Mutual Superspin Active'
+        },
+        expires_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Expires At'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'code', 'ruleset', 'status', 'player1_id', 'player2_id', 'current_turn_player_id', 'first_player_id', 'round_number', 'mutual_superspin_active', 'expires_at', 'created_at'],
+    title: 'FifotecaRoomPublic'
+} as const;
+
+export const FifotecaRoomWithStatesPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        code: {
+            type: 'string',
+            title: 'Code'
+        },
+        ruleset: {
+            type: 'string',
+            title: 'Ruleset'
+        },
+        status: {
+            type: 'string',
+            title: 'Status'
+        },
+        player1_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Player1 Id'
+        },
+        player2_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Player2 Id'
+        },
+        current_turn_player_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Current Turn Player Id'
+        },
+        first_player_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'First Player Id'
+        },
+        round_number: {
+            type: 'integer',
+            title: 'Round Number'
+        },
+        mutual_superspin_active: {
+            type: 'boolean',
+            title: 'Mutual Superspin Active'
+        },
+        expires_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Expires At'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        player_states: {
+            items: {
+                '$ref': '#/components/schemas/FifotecaPlayerStatePublic'
+            },
+            type: 'array',
+            title: 'Player States'
+        }
+    },
+    type: 'object',
+    required: ['id', 'code', 'ruleset', 'status', 'player1_id', 'player2_id', 'current_turn_player_id', 'first_player_id', 'round_number', 'mutual_superspin_active', 'expires_at', 'created_at', 'player_states'],
+    title: 'FifotecaRoomWithStatesPublic'
+} as const;
+
 export const HTTPValidationErrorSchema = {
     properties: {
         detail: {
@@ -194,6 +849,45 @@ export const ItemsPublicSchema = {
     type: 'object',
     required: ['data', 'count'],
     title: 'ItemsPublic'
+} as const;
+
+export const MatchScoreSubmitSchema = {
+    properties: {
+        player1_score: {
+            type: 'integer',
+            minimum: 0,
+            title: 'Player1 Score'
+        },
+        player2_score: {
+            type: 'integer',
+            minimum: 0,
+            title: 'Player2 Score'
+        }
+    },
+    type: 'object',
+    required: ['player1_score', 'player2_score'],
+    title: 'MatchScoreSubmit',
+    description: 'Request schema for submitting match scores.'
+} as const;
+
+export const MatchesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/FifotecaMatchHistoryPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'MatchesPublic',
+    description: 'List of matches for current player.'
 } as const;
 
 export const MessageSchema = {
