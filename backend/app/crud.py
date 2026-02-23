@@ -4,7 +4,14 @@ from typing import Any
 from sqlmodel import Session, select
 
 from app.core.security import get_password_hash, verify_password
-from app.models import Item, ItemCreate, User, UserCreate, UserUpdate
+from app.models import (
+    FifotecaPlayer,
+    Item,
+    ItemCreate,
+    User,
+    UserCreate,
+    UserUpdate,
+)
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
@@ -66,3 +73,42 @@ def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -
     session.commit()
     session.refresh(db_item)
     return db_item
+
+
+def get_player_by_user_id(
+    *, session: Session, user_id: uuid.UUID
+) -> FifotecaPlayer | None:
+    """
+    Get a FifotecaPlayer by user_id.
+
+    Args:
+        session: Database session
+        user_id: The user's UUID
+
+    Returns:
+        FifotecaPlayer if found, None otherwise
+    """
+    statement = select(FifotecaPlayer).where(FifotecaPlayer.user_id == user_id)
+    player = session.exec(statement).first()
+    return player
+
+
+def create_player(
+    *, session: Session, user_id: uuid.UUID, display_name: str
+) -> FifotecaPlayer:
+    """
+    Create a new FifotecaPlayer for a user.
+
+    Args:
+        session: Database session
+        user_id: The user's UUID
+        display_name: Display name for the player
+
+    Returns:
+        Created FifotecaPlayer instance
+    """
+    db_obj = FifotecaPlayer(user_id=user_id, display_name=display_name)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj

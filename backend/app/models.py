@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Optional
 
 from pydantic import EmailStr
 from sqlalchemy import DateTime
@@ -27,6 +28,7 @@ class PlayerSpinPhase(str, Enum):
     LEAGUE_LOCKED = "LEAGUE_LOCKED"
     TEAM_SPINNING = "TEAM_SPINNING"
     TEAM_LOCKED = "TEAM_LOCKED"
+    READY_TO_PLAY = "READY_TO_PLAY"
 
 
 # Shared properties
@@ -73,7 +75,7 @@ class User(UserBase, table=True):
         sa_type=DateTime(timezone=True),  # type: ignore
     )
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
-    fifoteca_player: "FifotecaPlayer | None" = Relationship(
+    fifoteca_player: Optional["FifotecaPlayer"] = Relationship(
         back_populates="user", sa_relationship_kwargs={"uselist": False}
     )
 
@@ -181,7 +183,7 @@ class FifotecaPlayer(SQLModel, table=True):
     )
 
     # Relationship
-    user: User | None = Relationship(back_populates="fifoteca_player")
+    user: Optional["User"] = Relationship(back_populates="fifoteca_player")
 
 
 # Fifoteca Room
@@ -201,7 +203,7 @@ class FifotecaRoom(SQLModel, table=True):
     round_number: int = Field(default=1)
     mutual_superspin_proposer_id: uuid.UUID | None = None
     mutual_superspin_active: bool = Field(default=False)
-    expires_at: datetime
+    expires_at: datetime = Field(sa_type=DateTime(timezone=True))  # type: ignore
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
@@ -332,6 +334,40 @@ class FifotecaPlayerPublic(SQLModel):
     has_protection: bool
 
 
+class FifotecaPlayerStatePublic(SQLModel):
+    id: uuid.UUID
+    room_id: uuid.UUID
+    player_id: uuid.UUID
+    round_number: int
+    phase: str
+    league_spins_remaining: int
+    team_spins_remaining: int
+    current_league_id: uuid.UUID | None
+    current_team_id: uuid.UUID | None
+    league_locked: bool
+    team_locked: bool
+    has_superspin: bool
+    superspin_used: bool
+    has_parity_spin: bool
+    parity_spin_used: bool
+
+
+class FifotecaRoomWithStatesPublic(SQLModel):
+    id: uuid.UUID
+    code: str
+    ruleset: str
+    status: str
+    player1_id: uuid.UUID
+    player2_id: uuid.UUID | None
+    current_turn_player_id: uuid.UUID | None
+    first_player_id: uuid.UUID | None
+    round_number: int
+    mutual_superspin_active: bool
+    expires_at: datetime
+    created_at: datetime | None
+    player_states: list[FifotecaPlayerStatePublic]
+
+
 class FifotecaRoomPublic(SQLModel):
     id: uuid.UUID
     code: str
@@ -345,6 +381,75 @@ class FifotecaRoomPublic(SQLModel):
     mutual_superspin_active: bool
     expires_at: datetime
     created_at: datetime | None
+
+
+# Match Schemas
+class MatchScoreSubmit(SQLModel):
+    """Request schema for submitting match scores."""
+
+    player1_score: int = Field(ge=0)
+    player2_score: int = Field(ge=0)
+
+
+class FifotecaMatchPublic(SQLModel):
+    """Public match schema (minimal)."""
+
+    id: uuid.UUID
+    room_id: uuid.UUID
+    round_number: int
+    player1_id: uuid.UUID
+    player2_id: uuid.UUID
+    player1_score: int | None
+    player2_score: int | None
+    rating_difference: int
+    protection_awarded_to_id: uuid.UUID | None
+    confirmed: bool
+    created_at: datetime | None
+
+
+class FifotecaMatchDetail(SQLModel):
+    """Detailed match schema (with team and submitter info)."""
+
+    id: uuid.UUID
+    room_id: uuid.UUID
+    round_number: int
+    player1_id: uuid.UUID
+    player2_id: uuid.UUID
+    player1_team_id: uuid.UUID
+    player2_team_id: uuid.UUID
+    player1_league_id: uuid.UUID
+    player2_league_id: uuid.UUID
+    player1_score: int | None
+    player2_score: int | None
+    rating_difference: int
+    protection_awarded_to_id: uuid.UUID | None
+    submitted_by_id: uuid.UUID | None
+    confirmed: bool
+    created_at: datetime | None
+
+
+class FifotecaMatchHistoryPublic(SQLModel):
+    """Enriched match history from current player's perspective."""
+
+    id: uuid.UUID
+    created_at: datetime | None
+    round_number: int
+    rating_difference: int
+    confirmed: bool
+    # Perspective-aware fields (from current player's viewpoint)
+    opponent_display_name: str
+    my_team_name: str
+    opponent_team_name: str
+    my_score: int | None
+    opponent_score: int | None
+    result: str  # "win", "loss", or "draw"
+
+
+class MatchesPublic(SQLModel):
+    """List of matches for current player."""
+
+    data: list[FifotecaMatchHistoryPublic]
+    count: int
 
 
 # Generic message
