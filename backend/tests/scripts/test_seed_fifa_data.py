@@ -268,6 +268,54 @@ def test_seed_fifa_data_idempotency(
     assert teams_after_second == teams_after_first
 
 
+def test_parse_csv_lowercase_short_headers(tmp_path: Path) -> None:
+    """Test that CSV with lowercase short headers (team,league,att,mid,def) is accepted."""
+    csv_file = tmp_path / "short_headers.csv"
+    csv_file.write_text(
+        "team,league,att,mid,def\n"
+        "Real Madrid,La Liga,90,88,85\n"
+        "Barcelona,La Liga,89,87,84\n"
+    )
+
+    rows = seed_fifa_data.parse_csv(csv_file)
+
+    assert len(rows) == 2
+    assert rows[0]["team_name"] == "Real Madrid"
+    assert rows[0]["league_name"] == "La Liga"
+    assert rows[0]["attack_rating"] == 90
+    assert rows[0]["midfield_rating"] == 88
+    assert rows[0]["defense_rating"] == 85
+    # Country falls back to league name when no country column
+    assert rows[0]["country"] == "La Liga"
+
+
+def test_parse_csv_lowercase_short_headers_missing_column(tmp_path: Path) -> None:
+    """Test that lowercase CSV with missing required column raises ValueError."""
+    csv_file = tmp_path / "short_missing.csv"
+    csv_file.write_text("team,league,att,mid\nTeam A,League X,80,80\n")
+
+    with pytest.raises(ValueError, match="CSV missing required columns"):
+        seed_fifa_data.parse_csv(csv_file)
+
+
+def test_parse_csv_lowercase_short_headers_overall_rating(
+    clean_fifa_db: Session, tmp_path: Path
+) -> None:
+    """Test overall_rating computed correctly from lowercase short-header CSV."""
+    csv_file = tmp_path / "short_rating.csv"
+    csv_file.write_text("team,league,att,mid,def\nTest Team,Test League,80,75,70\n")
+
+    rows = seed_fifa_data.parse_csv(csv_file)
+    stats = seed_fifa_data.seed_fifa_data(clean_fifa_db, rows)
+
+    assert stats["teams_created"] == 1
+    team = clean_fifa_db.exec(
+        select(FifaTeam).where(FifaTeam.name == "Test Team")
+    ).first()
+    assert team is not None
+    assert team.overall_rating == 225  # 80 + 75 + 70
+
+
 def test_seed_fifa_data_team_deduplication_same_name_different_league(
     clean_fifa_db: Session, tmp_path: Path
 ) -> None:

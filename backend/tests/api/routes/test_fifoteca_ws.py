@@ -384,6 +384,7 @@ class TestWebSocketConnection:
                 data = ws1.receive_json()
                 assert data["type"] == "player_connected"
                 assert data["payload"]["player_id"] == str(player2.id)
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
     def test_player_disconnected_broadcast(
         self, ws_client: TestClient, db: Session
@@ -473,6 +474,8 @@ class TestWebSocketConnection:
                 ws2.receive_json()  # Get state_sync
 
                 # Consume the player_connected message from ws2 joining
+                ws1.receive_json()
+                # Consume the state_sync re-broadcast after p2 join
                 ws1.receive_json()
 
                 # Player 2 disconnects (by exiting context)
@@ -1046,6 +1049,7 @@ class TestWebSocketGameFlow:
             ) as ws2:
                 ws2.receive_json()  # Get state_sync
                 ws1.receive_json()  # Get player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # Player 1 spins (their turn)
                 ws1.send_json({"type": "spin_league", "payload": {}})
@@ -1187,6 +1191,7 @@ class TestWebSocketGameFlow:
             ) as ws2:
                 ws2.receive_json()  # Get state_sync
                 ws1.receive_json()  # Get player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # Player 2 tries to spin (not their turn)
                 ws2.send_json({"type": "spin_league", "payload": {}})
@@ -1313,6 +1318,7 @@ class TestWebSocketGameFlow:
             ) as ws2:
                 ws2.receive_json()  # Get state_sync
                 ws1.receive_json()  # Get player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # Player 1 spins (will auto-lock)
                 ws1.send_json({"type": "spin_league", "payload": {}})
@@ -1490,6 +1496,7 @@ class TestWebSocketGameFlow:
             ) as ws2:
                 ws2.receive_json()  # Get state_sync
                 ws1.receive_json()  # Get player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # Player 1 spins team
                 ws1.send_json({"type": "spin_team", "payload": {}})
@@ -1601,6 +1608,7 @@ class TestWebSocketGameFlow:
             ) as ws2:
                 ws2.receive_json()  # Get state_sync
                 ws1.receive_json()  # Get player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # Player 1 locks (after spinning - for this test we just lock)
                 # Note: In real game, lock happens after spin, but we test the action
@@ -1961,6 +1969,7 @@ class TestPlayAgainAndLeaveRoom:
                 # Player 1 receives player_connected when player 2 connects
                 connected_msg = ws1.receive_json()
                 assert connected_msg["type"] == "player_connected"
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # Player 1 sends play_again
                 ws1.send_json({"type": "play_again", "payload": {}})
@@ -2368,6 +2377,7 @@ class TestMutualSuperspin:
                 ws2.receive_json()  # Get state_sync
                 # Player 1 receives player_connected when player 2 connects
                 ws1.receive_json()
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # Player 1 proposes mutual superspin
                 ws1.send_json({"type": "propose_mutual_superspin", "payload": {}})
@@ -2475,6 +2485,7 @@ class TestMutualSuperspin:
             ) as ws2:
                 ws2.receive_json()  # Get state_sync
                 ws1.receive_json()  # player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # Player 2 (not proposer) accepts
                 ws2.send_json({"type": "accept_mutual_superspin", "payload": {}})
@@ -2600,6 +2611,7 @@ class TestMutualSuperspin:
             ) as ws2:
                 ws2.receive_json()  # Get state_sync
                 ws1.receive_json()  # player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # Player 2 declines
                 ws2.send_json({"type": "decline_mutual_superspin", "payload": {}})

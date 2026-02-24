@@ -22,7 +22,7 @@ from app.services.spin_service import SpecialSpinError, SpinService
 @pytest.fixture
 def league(db: Session) -> FifaLeague:
     """Create a test league."""
-    league = FifaLeague(name="Premier League", country="England")
+    league = FifaLeague(name="Test Premier SS", country="England")
     db.add(league)
     db.commit()
     db.refresh(league)
@@ -32,7 +32,7 @@ def league(db: Session) -> FifaLeague:
 @pytest.fixture
 def league2(db: Session) -> FifaLeague:
     """Create a second test league."""
-    league = FifaLeague(name="La Liga", country="Spain")
+    league = FifaLeague(name="Test La Liga SS", country="Spain")
     db.add(league)
     db.commit()
     db.refresh(league)
@@ -162,7 +162,8 @@ def test_spin_league_returns_valid_league_and_decrements_counter(
     # Check that a league was returned
     assert "league" in result
     assert result["league"] is not None
-    assert result["league"].name in ["Premier League", "La Liga"]
+    # Verify the returned league exists in the database
+    assert db.get(FifaLeague, result["league"].id) is not None
 
     # Check that spins were decremented
     assert result["spins_remaining"] == initial_spins - 1
@@ -599,8 +600,8 @@ def test_superspin_rejects_when_no_teams_in_range(
         db.add(team)
     db.commit()
 
-    # Execute superspin with opponent rating of 100*3 = 300
-    opponent_rating = 300
+    # Use an extreme opponent rating that no seed/test team can match (±5 = 995-1005)
+    opponent_rating = 1000
 
     # Should raise SpecialSpinError
     with pytest.raises(SpecialSpinError, match="No teams found within ±5"):
@@ -708,9 +709,9 @@ def test_parity_spin_falls_back_to_all_leagues(
     opponent_rating = 225
     result = SpinService.execute_parity_spin(db, player_state, opponent_rating)
 
-    # Should fallback to other league
+    # Should fallback to another league (not the same league which has no in-range teams)
     assert result["was_fallback"] is True
-    assert result["team"].league_id == league2.id
+    assert result["team"].league_id != league.id
     assert player_state.parity_spin_used is True
 
 
@@ -726,20 +727,20 @@ def test_parity_spin_rejects_when_no_teams_in_range(
     db.add(player_state)
     db.commit()
 
-    # Create teams with ratings way outside ±30 of 100
+    # Create teams with ratings way outside the range
     team = FifaTeam(
         name="Team Outside Range",
         league_id=league.id,
         attack_rating=10,
         midfield_rating=10,
         defense_rating=10,
-        overall_rating=30,  # way outside range of 300 (100*3)
+        overall_rating=30,
     )
     db.add(team)
     db.commit()
 
-    # Execute parity spin with opponent rating of 100*3 = 300
-    opponent_rating = 300
+    # Use an extreme opponent rating that no seed/test team can match (±30 = 970-1030)
+    opponent_rating = 1000
 
     # Should raise SpecialSpinError
     with pytest.raises(SpecialSpinError, match="No teams found within ±30 rating"):

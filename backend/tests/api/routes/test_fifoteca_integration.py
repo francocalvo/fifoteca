@@ -235,6 +235,7 @@ class TestFullGameFlow:
             with client.websocket_connect(ws_url(room.code, t2)) as ws2:
                 ws2.receive_json()  # state_sync
                 ws1.receive_json()  # player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # --- LEAGUE PHASE ---
                 # Alternate spins: P1->P2->P1->P2->P1->P2
@@ -474,6 +475,7 @@ class TestRoomLifecycle:
             with client.websocket_connect(ws_url(room.code, t2)) as ws2:
                 ws2.receive_json()  # state_sync
                 ws1.receive_json()  # player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # P1 initiates play_again
                 ws1.send_json({"type": "play_again", "payload": {}})
@@ -533,6 +535,7 @@ class TestTurnEnforcement:
             with client.websocket_connect(ws_url(room.code, t2)) as ws2:
                 ws2.receive_json()  # state_sync
                 ws1.receive_json()  # player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # It's P1's turn. P2 tries to spin.
                 ws2.send_json({"type": "spin_league", "payload": {}})
@@ -861,6 +864,7 @@ class TestSpecialSpinFlow:
             with client.websocket_connect(ws_url(room.code, t2)) as ws2:
                 ws2.receive_json()  # state_sync
                 ws1.receive_json()  # player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # P1 uses superspin
                 ws1.send_json({"type": "use_superspin", "payload": {}})
@@ -975,6 +979,7 @@ class TestSpecialSpinFlow:
             with client.websocket_connect(ws_url(room.code, t2)) as ws2:
                 ws2.receive_json()  # state_sync
                 ws1.receive_json()  # player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # P1 uses parity spin
                 ws1.send_json({"type": "use_parity_spin", "payload": {}})
@@ -1038,6 +1043,7 @@ class TestCreateAndJoinViaREST:
             with client.websocket_connect(ws_url(room_code, t2)) as ws2:
                 ws2.receive_json()  # state_sync
                 ws1.receive_json()  # player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 # P1 can spin
                 ws1.send_json({"type": "spin_league", "payload": {}})
@@ -1068,6 +1074,7 @@ class TestInvalidActionForPhase:
             with client.websocket_connect(ws_url(room.code, t2)) as ws2:
                 ws2.receive_json()  # state_sync
                 ws1.receive_json()  # player_connected
+                ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
                 ws1.send_json({"type": "spin_team", "payload": {}})
                 error = ws1.receive_json()

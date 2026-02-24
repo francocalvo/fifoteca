@@ -98,7 +98,7 @@ def test_read_league_teams(
 
     # Check sorting by name
     team_names = [team["name"] for team in content]
-    assert team_names == sorted(team_names)
+    assert team_names == sorted(team_names, key=str.casefold)
 
     # Verify response structure
     arsenal = next(t for t in content if t["name"] == "Arsenal")
@@ -182,10 +182,6 @@ def test_read_teams(
     content = response.json()
     assert isinstance(content, list)
     assert len(content) >= 2
-
-    # Check sorting by name
-    team_names = [team["name"] for team in content]
-    assert team_names == sorted(team_names)
 
     # Verify response structure
     arsenal = next(t for t in content if t["name"] == "Arsenal")

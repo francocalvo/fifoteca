@@ -13,9 +13,59 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+HEADER_ALIASES: dict[str, str] = {
+    # Lowercase short form (task spec format: team,league,att,mid,def)
+    "team": "team",
+    "league": "league",
+    "att": "attack",
+    "mid": "midfield",
+    "def": "defense",
+    # Title-case long form (bundled CSV format: Team,League,Attack,Midfield,Defence)
+    "Team": "team",
+    "League": "league",
+    "Attack": "attack",
+    "Midfield": "midfield",
+    "Defence": "defense",
+    # Optional columns
+    "country": "country",
+    "Country": "country",
+}
+
+REQUIRED_CANONICAL = {"team", "league", "attack", "midfield", "defense"}
+
+
+def _normalize_headers(fieldnames: list[str]) -> dict[str, str]:
+    """Map raw CSV column names to canonical internal names.
+
+    Returns a dict mapping raw column name -> canonical name for all
+    recognized columns.
+
+    Raises ValueError if required canonical columns are missing.
+    """
+    mapping: dict[str, str] = {}
+    for raw in fieldnames:
+        canonical = HEADER_ALIASES.get(raw)
+        if canonical is not None:
+            mapping[raw] = canonical
+
+    found_canonical = set(mapping.values())
+    missing = REQUIRED_CANONICAL - found_canonical
+    if missing:
+        raise ValueError(f"CSV missing required columns: {missing}")
+
+    return mapping
+
+
 def parse_csv(csv_path: Path) -> list[dict]:
     """
     Parse CSV file and validate structure.
+
+    Accepts two header formats:
+    - Short lowercase: team,league,att,mid,def
+    - Title-case long: Team,League,Attack,Midfield,Defence
+
+    An optional 'Country' or 'country' column is used when present;
+    otherwise the league name is used as the country fallback.
 
     Args:
         csv_path: Path to CSV file
@@ -33,23 +83,29 @@ def parse_csv(csv_path: Path) -> list[dict]:
     with csv_path.open("r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
 
-        # Validate header
-        expected_columns = {"Team", "League", "Attack", "Midfield", "Defence"}
         if not reader.fieldnames:
             raise ValueError("CSV file is empty")
 
-        actual_columns = set(reader.fieldnames)
-        if not expected_columns.issubset(actual_columns):
-            missing = expected_columns - actual_columns
-            raise ValueError(f"CSV missing required columns: {missing}")
+        header_map = _normalize_headers(list(reader.fieldnames))
+
+        # Build reverse lookup: canonical -> raw column name
+        canonical_to_raw: dict[str, str] = {}
+        for raw, canonical in header_map.items():
+            canonical_to_raw.setdefault(canonical, raw)
+
+        team_col = canonical_to_raw["team"]
+        league_col = canonical_to_raw["league"]
+        attack_col = canonical_to_raw["attack"]
+        midfield_col = canonical_to_raw["midfield"]
+        defense_col = canonical_to_raw["defense"]
+        country_col = canonical_to_raw.get("country")
 
         rows = []
         for row_num, row in enumerate(reader, start=2):
             try:
-                # Validate and convert ratings to integers
-                att = int(row["Attack"])
-                mid = int(row["Midfield"])
-                defense = int(row["Defence"])
+                att = int(row[attack_col])
+                mid = int(row[midfield_col])
+                defense = int(row[defense_col])
 
                 if att < 0 or mid < 0 or defense < 0:
                     raise ValueError("Ratings must be non-negative")
@@ -57,11 +113,18 @@ def parse_csv(csv_path: Path) -> list[dict]:
                 if att > 100 or mid > 100 or defense > 100:
                     raise ValueError("Ratings must be <= 100")
 
+                league_name = row[league_col].strip()
+                country = (
+                    row[country_col].strip()
+                    if country_col and row.get(country_col)
+                    else league_name
+                )
+
                 rows.append(
                     {
-                        "team_name": row["Team"].strip(),
-                        "league_name": row["League"].strip(),
-                        "country": row.get("Country", row["League"]).strip(),
+                        "team_name": row[team_col].strip(),
+                        "league_name": league_name,
+                        "country": country,
                         "attack_rating": att,
                         "midfield_rating": mid,
                         "defense_rating": defense,
