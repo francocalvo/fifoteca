@@ -30,12 +30,19 @@ export interface SpreadBucket {
   sampleSize: number
 }
 
+export interface SpreadPoint {
+  spread: number
+  myWinPct: number
+  sampleSize: number
+}
+
 const BUCKETS: { label: string; range: [number, number] }[] = [
   { label: "0-4", range: [0, 4] },
   { label: "5-9", range: [5, 9] },
-  { label: "10-19", range: [10, 19] },
-  { label: "20-29", range: [20, 29] },
-  { label: "30+", range: [30, Infinity] },
+  { label: "10-14", range: [10, 14] },
+  { label: "15-19", range: [15, 19] },
+  { label: "20-24", range: [20, 24] },
+  { label: "25-30", range: [25, 30] },
 ]
 
 export function filterByOpponent(
@@ -146,14 +153,7 @@ export function computeSpreadBuckets(
     const n = bucket.length
 
     if (n === 0) {
-      return {
-        label,
-        range,
-        favoriteWinPct: 0,
-        drawPct: 0,
-        underdogWinPct: 0,
-        sampleSize: 0,
-      }
+      return { label, range, favoriteWinPct: 0, drawPct: 0, underdogWinPct: 0, sampleSize: 0 }
     }
 
     let favWins = 0
@@ -183,4 +183,34 @@ export function computeSpreadBuckets(
       sampleSize: n,
     }
   })
+}
+
+export function computeSpreadPoints(
+  matches: FifotecaMatchHistoryPublic[],
+): SpreadPoint[] {
+  const grouped = new Map<number, FifotecaMatchHistoryPublic[]>()
+
+  for (const m of matches) {
+    const key = Math.min(m.rating_difference, 30)
+    const arr = grouped.get(key)
+    if (arr) arr.push(m)
+    else grouped.set(key, [m])
+  }
+
+  const points: SpreadPoint[] = []
+
+  for (const [spread, group] of grouped) {
+    const n = group.length
+    let myWins = 0
+    for (const m of group) {
+      if (m.result === "win") myWins++
+    }
+    points.push({
+      spread,
+      myWinPct: Math.round((myWins / n) * 100),
+      sampleSize: n,
+    })
+  }
+
+  return points.sort((a, b) => a.spread - b.spread)
 }

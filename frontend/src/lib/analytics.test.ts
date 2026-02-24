@@ -3,6 +3,7 @@ import type { FifotecaMatchHistoryPublic } from "@/client"
 import {
   computeH2H,
   computeSpreadBuckets,
+  computeSpreadPoints,
   filterByOpponent,
   getRole,
 } from "./analytics"
@@ -168,15 +169,16 @@ describe("computeH2H", () => {
 })
 
 describe("computeSpreadBuckets", () => {
-  it("produces exactly 5 fixed buckets", () => {
+  it("produces exactly 6 fixed buckets", () => {
     const buckets = computeSpreadBuckets([])
-    expect(buckets).toHaveLength(5)
+    expect(buckets).toHaveLength(6)
     expect(buckets.map((b) => b.label)).toEqual([
       "0-4",
       "5-9",
-      "10-19",
-      "20-29",
-      "30+",
+      "10-14",
+      "15-19",
+      "20-24",
+      "25-30",
     ])
   })
 
@@ -192,23 +194,24 @@ describe("computeSpreadBuckets", () => {
 
   it("assigns matches to correct bucket based on rating_difference", () => {
     const matches = [
-      makeMatch({ rating_difference: 3 }), // 0-4
-      makeMatch({ rating_difference: 7 }), // 5-9
-      makeMatch({ rating_difference: 15 }), // 10-19
-      makeMatch({ rating_difference: 25 }), // 20-29
-      makeMatch({ rating_difference: 50 }), // 30+
+      makeMatch({ rating_difference: 3 }),  // 0-4
+      makeMatch({ rating_difference: 7 }),  // 5-9
+      makeMatch({ rating_difference: 12 }), // 10-14
+      makeMatch({ rating_difference: 17 }), // 15-19
+      makeMatch({ rating_difference: 22 }), // 20-24
+      makeMatch({ rating_difference: 28 }), // 25-30
     ]
     const buckets = computeSpreadBuckets(matches)
     expect(buckets[0].sampleSize).toBe(1) // 0-4
     expect(buckets[1].sampleSize).toBe(1) // 5-9
-    expect(buckets[2].sampleSize).toBe(1) // 10-19
-    expect(buckets[3].sampleSize).toBe(1) // 20-29
-    expect(buckets[4].sampleSize).toBe(1) // 30+
+    expect(buckets[2].sampleSize).toBe(1) // 10-14
+    expect(buckets[3].sampleSize).toBe(1) // 15-19
+    expect(buckets[4].sampleSize).toBe(1) // 20-24
+    expect(buckets[5].sampleSize).toBe(1) // 25-30
   })
 
   it("computes percentages correctly for bucket with mixed results", () => {
     const matches = [
-      // 3 matches in 10-19 bucket: 2 favorite wins, 1 draw
       makeMatch({
         rating_difference: 15,
         result: "win",
@@ -216,9 +219,9 @@ describe("computeSpreadBuckets", () => {
         opponent_team_rating: 245,
       }),
       makeMatch({
-        rating_difference: 12,
+        rating_difference: 16,
         result: "win",
-        my_team_rating: 252,
+        my_team_rating: 256,
         opponent_team_rating: 240,
       }),
       makeMatch({
@@ -229,16 +232,14 @@ describe("computeSpreadBuckets", () => {
       }),
     ]
     const buckets = computeSpreadBuckets(matches)
-    const bucket10_19 = buckets[2]
-    expect(bucket10_19.sampleSize).toBe(3)
-    expect(bucket10_19.favoriteWinPct).toBe(67) // 2/3 rounded
-    expect(bucket10_19.drawPct).toBe(33) // 1/3 rounded
-    expect(bucket10_19.underdogWinPct).toBe(0)
+    const bucket15_19 = buckets[3]
+    expect(bucket15_19.sampleSize).toBe(3)
+    expect(bucket15_19.favoriteWinPct).toBe(67) // 2/3 rounded
+    expect(bucket15_19.drawPct).toBe(33) // 1/3 rounded
+    expect(bucket15_19.underdogWinPct).toBe(0)
   })
 
   it("classifies underdog wins correctly", () => {
-    // Underdog wins when role=underdog and result=win,
-    // OR when role=favorite and result=loss
     const matches = [
       makeMatch({
         rating_difference: 5,
@@ -250,5 +251,49 @@ describe("computeSpreadBuckets", () => {
     const buckets = computeSpreadBuckets(matches)
     const bucket5_9 = buckets[1]
     expect(bucket5_9.underdogWinPct).toBe(100) // favorite lost = underdog win
+  })
+})
+
+describe("computeSpreadPoints", () => {
+  it("returns empty array for no matches", () => {
+    const points = computeSpreadPoints([])
+    expect(points).toHaveLength(0)
+  })
+
+  it("creates one point per unique rating_difference, sorted ascending", () => {
+    const matches = [
+      makeMatch({ rating_difference: 15 }),
+      makeMatch({ rating_difference: 3 }),
+      makeMatch({ rating_difference: 15 }),
+      makeMatch({ rating_difference: 25 }),
+    ]
+    const points = computeSpreadPoints(matches)
+    expect(points).toHaveLength(3)
+    expect(points.map((p) => p.spread)).toEqual([3, 15, 25])
+    expect(points[1].sampleSize).toBe(2)
+  })
+
+  it("computes my win rate correctly", () => {
+    const matches = [
+      makeMatch({ rating_difference: 15, result: "win" }),
+      makeMatch({ rating_difference: 15, result: "win" }),
+      makeMatch({ rating_difference: 15, result: "draw" }),
+    ]
+    const points = computeSpreadPoints(matches)
+    expect(points).toHaveLength(1)
+    expect(points[0].myWinPct).toBe(67) // 2 wins out of 3
+  })
+
+  it("clamps rating_difference above 30 into spread=30", () => {
+    const matches = [
+      makeMatch({ rating_difference: 35, result: "win" }),
+      makeMatch({ rating_difference: 50, result: "loss" }),
+      makeMatch({ rating_difference: 10, result: "win" }),
+    ]
+    const points = computeSpreadPoints(matches)
+    expect(points).toHaveLength(2)
+    expect(points.map((p) => p.spread)).toEqual([10, 30])
+    expect(points[1].sampleSize).toBe(2)
+    expect(points[1].myWinPct).toBe(50)
   })
 })

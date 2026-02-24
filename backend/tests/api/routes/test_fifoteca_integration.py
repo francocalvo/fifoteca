@@ -761,12 +761,12 @@ class TestExpiredRoomRejection:
 class TestSpecialSpinFlow:
     """Test special spin eligibility and execution."""
 
-    def test_superspin_during_team_spinning(
+    def test_superspin_rejected_during_team_spinning(
         self,
         client: TestClient,
         db: Session,
     ) -> None:
-        """S21.AC5c: Superspin executed during SPINNING_TEAMS phase."""
+        """Superspin is NOT allowed during SPINNING_TEAMS; only during RATING_REVIEW."""
         tid = _uid()
         u1, p1 = create_test_user(db, f"ss1_{tid}@test.com", "SS P1")
         u2, p2 = create_test_user(db, f"ss2_{tid}@test.com", "SS P2")
@@ -776,8 +776,6 @@ class TestSpecialSpinFlow:
         db.commit()
         db.refresh(league)
 
-        # P1 has weak team, P2 has strong team
-        # Extra teams near P2's rating for superspin to find
         weak_team = FifaTeam(
             name=f"Weak_{tid}",
             league_id=league.id,
@@ -794,19 +792,10 @@ class TestSpecialSpinFlow:
             defense_rating=85,
             overall_rating=255,
         )
-        near_team = FifaTeam(
-            name=f"Near_{tid}",
-            league_id=league.id,
-            attack_rating=84,
-            midfield_rating=84,
-            defense_rating=84,
-            overall_rating=252,
-        )
-        db.add_all([weak_team, strong_team, near_team])
+        db.add_all([weak_team, strong_team])
         db.commit()
         db.refresh(weak_team)
         db.refresh(strong_team)
-        db.refresh(near_team)
 
         # Room in SPINNING_TEAMS, P1's turn, P1 has superspin
         room = FifotecaRoom(
@@ -823,7 +812,6 @@ class TestSpecialSpinFlow:
         db.commit()
         db.refresh(room)
 
-        # P1: has superspin, league locked, team spinning
         p1_state = FifotecaPlayerState(
             room_id=room.id,
             player_id=p1.id,
@@ -838,7 +826,6 @@ class TestSpecialSpinFlow:
             has_superspin=True,
             superspin_used=False,
         )
-        # P2: league locked, team locked already
         p2_state = FifotecaPlayerState(
             room_id=room.id,
             player_id=p2.id,
@@ -866,20 +853,15 @@ class TestSpecialSpinFlow:
                 ws1.receive_json()  # player_connected
                 ws1.receive_json()  # state_sync (fresh broadcast after p2 join)
 
-                # P1 uses superspin
+                # P1 attempts superspin during SPINNING_TEAMS — should be rejected
                 ws1.send_json({"type": "use_superspin", "payload": {}})
 
-                spin = ws1.receive_json()
-                assert spin["type"] == "spin_result"
-                assert spin["payload"]["type"] == "team"
+                error = ws1.receive_json()
+                assert error["type"] == "error"
 
-                # New team should be within ±5 of opponent's 255
-                new_rating = spin["payload"]["result"]["overall_rating"]
-                assert abs(new_rating - strong_team.overall_rating) <= 5
-
-                # Verify superspin marked used in DB
+                # Verify superspin was NOT used
                 db.refresh(p1_state)
-                assert p1_state.superspin_used is True
+                assert p1_state.superspin_used is False
 
     def test_parity_spin_during_rating_review(
         self,

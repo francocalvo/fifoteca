@@ -269,6 +269,25 @@ async def confirm_match_result(
                 p2.total_draws += 1
                 session.add(p2)
 
+    # Award protection based on FINAL team assignments (after parity/superspins)
+    p1_team = session.get(FifaTeam, match.player1_team_id)
+    p2_team = session.get(FifaTeam, match.player2_team_id)
+    if p1_team and p2_team:
+        final_rating_diff = abs(p1_team.overall_rating - p2_team.overall_rating)
+        match.rating_difference = final_rating_diff
+        protection_awarded_to_id = None
+        if final_rating_diff >= 5:
+            if p1_team.overall_rating < p2_team.overall_rating:
+                protection_awarded_to_id = match.player1_id
+            elif p2_team.overall_rating < p1_team.overall_rating:
+                protection_awarded_to_id = match.player2_id
+        match.protection_awarded_to_id = protection_awarded_to_id
+        if protection_awarded_to_id:
+            weaker_player = session.get(FifotecaPlayer, protection_awarded_to_id)
+            if weaker_player:
+                weaker_player.has_protection = True
+                session.add(weaker_player)
+
     # Mark match confirmed
     match.confirmed = True
 

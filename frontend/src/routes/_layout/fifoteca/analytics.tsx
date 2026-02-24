@@ -1,7 +1,7 @@
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { BarChart3, Users } from "lucide-react"
-import { Suspense, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 
 import { FifotecaService } from "@/client"
 import {
@@ -12,9 +12,11 @@ import {
 } from "@/components/fifoteca"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import useFifotecaPlayer from "@/hooks/useFifotecaPlayer"
 import {
   computeH2H,
   computeSpreadBuckets,
+  computeSpreadPoints,
   filterByOpponent,
 } from "@/lib/analytics"
 
@@ -74,6 +76,11 @@ function AnalyticsContent({ opponentId }: { opponentId: string }) {
     [filteredMatches],
   )
 
+  const spreadPoints = useMemo(
+    () => computeSpreadPoints(filteredMatches),
+    [filteredMatches],
+  )
+
   if (filteredMatches.length === 0) {
     return (
       <Card>
@@ -94,15 +101,28 @@ function AnalyticsContent({ opponentId }: { opponentId: string }) {
     <div className="space-y-6">
       <H2HSummary stats={h2hStats} opponentName={opponentName} />
       <AnalyticsMatchHistory matches={filteredMatches} />
-      <SpreadAnalytics buckets={spreadBuckets} />
+      <SpreadAnalytics buckets={spreadBuckets} points={spreadPoints} />
     </div>
   )
 }
 
 function AnalyticsPage() {
+  const { player } = useFifotecaPlayer()
+  const { data: players } = useQuery(getPlayersQueryOptions())
   const [selectedOpponentId, setSelectedOpponentId] = useState<
     string | undefined
   >(undefined)
+
+  const opponents = useMemo(
+    () => players?.filter((p) => p.id !== player?.id) ?? [],
+    [players, player],
+  )
+
+  useEffect(() => {
+    if (!selectedOpponentId && opponents.length > 0) {
+      setSelectedOpponentId(opponents[0].id)
+    }
+  }, [opponents, selectedOpponentId])
 
   return (
     <div className="flex flex-col gap-6">

@@ -9,6 +9,7 @@ from sqlmodel import and_, col, select
 from app.api.deps import CurrentUser, SessionDep
 from app.crud import get_player_by_user_id
 from app.models import (
+    FifotecaPlayer,
     FifotecaPlayerState,
     FifotecaRoom,
     FifotecaRoomPublic,
@@ -168,8 +169,9 @@ def join_room(
     session.commit()
     session.refresh(room)
 
-    # Initialize player states for both players
-    # Player 1 (room creator)
+    # Initialize player states for both players, transferring any protection
+    # from previous games into superspin for this round.
+    player1 = session.get(FifotecaPlayer, room.player1_id)
     player1_state = FifotecaPlayerState(
         room_id=room.id,
         player_id=room.player1_id,
@@ -177,11 +179,10 @@ def join_room(
         phase=PlayerSpinPhase.LEAGUE_SPINNING,
         league_spins_remaining=3,
         team_spins_remaining=3,
+        has_superspin=player1.has_protection if player1 else False,
     )
     session.add(player1_state)
 
-    # Player 2 (joiner) - check for protection flag
-    player2_has_superspin = player.has_protection
     player2_state = FifotecaPlayerState(
         room_id=room.id,
         player_id=player.id,
@@ -189,9 +190,17 @@ def join_room(
         phase=PlayerSpinPhase.LEAGUE_SPINNING,
         league_spins_remaining=3,
         team_spins_remaining=3,
-        has_superspin=player2_has_superspin,
+        has_superspin=player.has_protection,
     )
     session.add(player2_state)
+
+    # Clear has_protection after transferring to round state
+    if player1 and player1.has_protection:
+        player1.has_protection = False
+        session.add(player1)
+    if player.has_protection:
+        player.has_protection = False
+        session.add(player)
 
     session.commit()
     session.refresh(room)

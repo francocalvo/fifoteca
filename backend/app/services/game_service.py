@@ -124,12 +124,18 @@ class GameService:
         return opponent_state
 
     @staticmethod
-    def _compute_rating_review(session: Session, room: FifotecaRoom) -> dict | None:
+    def _compute_rating_review(
+        session: Session, room: FifotecaRoom, *, award_parity_spin: bool = True
+    ) -> dict | None:
         """Compute rating comparison and protection/parity awards.
 
         Args:
             session: Database session.
             room: The room object.
+            award_parity_spin: Whether to award parity spin. Should be True
+                only on the initial phase transition, and False on
+                recomputations after special spins to prevent both players
+                from receiving parity spins in the same round.
 
         Returns:
             Dictionary with rating review data, or None if teams not locked.
@@ -184,12 +190,16 @@ class GameService:
         if rating_difference >= 5:
             protection_awarded_to_id = weaker_player_id
 
-        # Award parity spin at diff >= 30
+        # Award parity spin at diff >= 30 (only on initial computation)
         parity_available_to_id = None
         if rating_difference >= 30 and not weaker_state.parity_spin_used:
-            weaker_state.has_parity_spin = True
-            session.add(weaker_state)
-            parity_available_to_id = weaker_player_id
+            if award_parity_spin:
+                weaker_state.has_parity_spin = True
+                session.add(weaker_state)
+            # Report parity availability if the weaker player already has it
+            # (from initial award) or we just awarded it
+            if weaker_state.has_parity_spin:
+                parity_available_to_id = weaker_player_id
 
         # Superspin availability (check who has it)
         superspin_available_to_id = None
@@ -298,26 +308,10 @@ class GameService:
                 detail="Teams not found",
             )
 
-        # Compute rating difference
+        # Compute rating difference (preliminary; protection is awarded at confirmation time)
         rating_difference = abs(p1_team.overall_rating - p2_team.overall_rating)
 
-        # Compute protection awarded to weaker player (diff >= 5)
-        protection_awarded_to_id = None
-        if p1_team.overall_rating < p2_team.overall_rating:
-            if rating_difference >= 5:
-                protection_awarded_to_id = room.player1_id
-        elif p2_team.overall_rating < p1_team.overall_rating:
-            if rating_difference >= 5:
-                protection_awarded_to_id = room.player2_id
-
-        # Set has_protection on the weaker player (final team assignments)
-        if protection_awarded_to_id:
-            weaker_player = session.get(FifotecaPlayer, protection_awarded_to_id)
-            if weaker_player:
-                weaker_player.has_protection = True
-                session.add(weaker_player)
-
-        # Create match
+        # Create match (protection_awarded_to_id is set at confirmation time)
         match = FifotecaMatch(
             room_id=room.id,
             round_number=room.round_number,
@@ -326,7 +320,6 @@ class GameService:
             player1_team_id=p1_team.id,
             player2_team_id=p2_team.id,
             rating_difference=rating_difference,
-            protection_awarded_to_id=protection_awarded_to_id,
         )
         session.add(match)
         session.commit()
@@ -400,7 +393,7 @@ class GameService:
         if room.status == RoomStatus.SPINNING_LEAGUES:
             valid_actions = ["spin_league", "lock_league"]
         elif room.status == RoomStatus.SPINNING_TEAMS:
-            valid_actions = ["spin_team", "lock_team", "use_superspin"]
+            valid_actions = ["spin_team", "lock_team"]
         elif room.status == RoomStatus.RATING_REVIEW:
             valid_actions = ["use_parity_spin", "use_superspin", "ready_to_play"]
         else:
@@ -614,9 +607,11 @@ class GameService:
                 response["room_status"] = room.status
                 response["match_id"] = str(match.id)
 
-        # Recompute rating review after special spins
+        # Recompute rating review after special spins (don't re-award parity)
         if action_type in ("use_superspin", "use_parity_spin"):
-            rating_review = GameService._compute_rating_review(session, room)
+            rating_review = GameService._compute_rating_review(
+                session, room, award_parity_spin=False
+            )
             if rating_review:
                 response["rating_review"] = rating_review
 

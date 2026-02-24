@@ -1,7 +1,7 @@
 /**
  * Fifoteca E2E — Special Spins
  *
- * Tests superspin (during SPINNING_TEAMS) and parity spin (during RATING_REVIEW).
+ * Tests superspin and parity spin (both during RATING_REVIEW).
  *
  * Superspin requires has_protection from a previous match. To reliably trigger it,
  * we use mutual superspin to give both players has_superspin in the same room.

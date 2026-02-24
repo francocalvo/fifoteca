@@ -384,7 +384,7 @@ function FifotecaGamePage() {
     myState &&
     !myState.parity_spin_used
   const canUseSuperspin =
-    (isTeamPhase || isRatingReview) &&
+    isRatingReview &&
     myState &&
     myState.has_superspin &&
     !myState.superspin_used

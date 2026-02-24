@@ -871,64 +871,16 @@ class TestRatingComparisonAndSpecialSpins:
         db.refresh(p2_state)
         assert p2_state.has_parity_spin is True
 
-    def test_use_superspin_valid_in_spinning_teams_phase(
+    def test_use_superspin_rejected_in_spinning_teams_phase(
         self,
         db: Session,
         active_room: FifotecaRoom,
         league: FifaLeague,
     ):
-        """S09.AC7: use_superspin is valid in SPINNING_TEAMS phase."""
-        # Create teams for opponents
-        team1 = FifaTeam(
-            name="Team High",
-            league_id=league.id,
-            attack_rating=90,
-            midfield_rating=90,
-            defense_rating=90,
-            overall_rating=270,
-        )
-        team2 = FifaTeam(
-            name="Team Low",
-            league_id=league.id,
-            attack_rating=80,
-            midfield_rating=80,
-            defense_rating=80,
-            overall_rating=240,
-        )
-        # Create candidate teams for superspin (within ±5 of opponent 240)
-        candidates = []
-        for rating in [78, 79, 80, 81, 82]:
-            team = FifaTeam(
-                name=f"Candidate {rating}",
-                league_id=league.id,
-                attack_rating=rating,
-                midfield_rating=rating,
-                defense_rating=rating,
-                overall_rating=rating * 3,
-            )
-            candidates.append(team)
-            db.add(team)
-        db.add(team1)
-        db.add(team2)
-        db.commit()
-
-        # Lock opponent's team, set room to spinning teams
-        p2_state = db.exec(
-            select(FifotecaPlayerState).where(
-                FifotecaPlayerState.player_id == active_room.player2_id
-            )
-        ).first()
-        p2_state.current_team_id = team2.id
-        p2_state.team_locked = True
-        p2_state.phase = PlayerSpinPhase.TEAM_LOCKED
-        p2_state.has_superspin = True  # Give player1 superspin
-        db.add(p2_state)
-
+        """use_superspin is NOT valid during SPINNING_TEAMS; only during RATING_REVIEW."""
         active_room.status = RoomStatus.SPINNING_TEAMS
         db.add(active_room)
-        db.commit()
 
-        # Use superspin
         p1_state = db.exec(
             select(FifotecaPlayerState).where(
                 FifotecaPlayerState.player_id == active_room.player1_id
@@ -940,16 +892,10 @@ class TestRatingComparisonAndSpecialSpins:
         db.add(p1_state)
         db.commit()
 
-        # Execute superspin
-        result = GameService.handle_action(
-            db, active_room.code, active_room.player1_id, "use_superspin"
-        )
-
-        # Check result
-        assert result["action_type"] == "use_superspin"
-        assert "team" in result["result"]
-        assert "rating_review" in result
-        assert p1_state.superspin_used is True
+        with pytest.raises(InvalidActionError):
+            GameService.handle_action(
+                db, active_room.code, active_room.player1_id, "use_superspin"
+            )
 
     def test_use_parity_spin_valid_in_rating_review_phase(
         self,
@@ -1210,8 +1156,8 @@ class TestMatchCreation:
         assert match.player1_team_id == team1.id
         assert match.player2_team_id == team2.id
         assert match.rating_difference == 15  # 255 - 240
-        # Player 1 has weaker team, should get protection (diff >= 5)
-        assert match.protection_awarded_to_id == active_room.player1_id
+        # Protection is awarded at confirmation time, not match creation
+        assert match.protection_awarded_to_id is None
         assert match.player1_score is None
         assert match.player2_score is None
         assert match.submitted_by_id is None
@@ -1470,7 +1416,8 @@ class TestMatchCreation:
         assert len(matches) == 1
         match = matches[0]
         assert match.rating_difference == 6
-        assert match.protection_awarded_to_id == active_room.player1_id
+        # Protection is awarded at confirmation time, not match creation
+        assert match.protection_awarded_to_id is None
 
 
 class TestResetRoomForNewRound:

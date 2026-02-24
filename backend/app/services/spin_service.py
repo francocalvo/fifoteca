@@ -394,6 +394,8 @@ class SpinService:
 
         # Update player state
         player_state.current_team_id = selected_team.id
+        player_state.team_locked = True
+        player_state.phase = PlayerSpinPhase.TEAM_LOCKED
         player_state.parity_spin_used = True
 
         # Update current_league_id if different league (fallback scenario)
