@@ -1,3 +1,7 @@
+export { AnalyticsMatchHistory } from "./AnalyticsMatchHistory"
+export { H2HSummary } from "./H2HSummary"
 export { LeagueCard } from "./LeagueCard"
+export { OpponentSelector } from "./OpponentSelector"
 export { SpinDisplay } from "./SpinDisplay"
+export { SpreadAnalytics } from "./SpreadAnalytics"
 export { TeamCard } from "./TeamCard"

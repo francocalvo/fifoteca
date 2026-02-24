@@ -3,10 +3,18 @@
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, SessionDep
-from app.crud import create_player, get_player_by_user_id
+from app.crud import create_player, get_player_by_user_id, list_all_players
 from app.models import FifotecaPlayer, FifotecaPlayerPublic
 
 router = APIRouter(prefix="/players", tags=["players"])
+
+
+@router.get("", response_model=list[FifotecaPlayerPublic])
+def list_players(
+    session: SessionDep, current_user: CurrentUser  # noqa: ARG001
+) -> list[FifotecaPlayer]:
+    """List all registered Fifoteca players."""
+    return list_all_players(session=session)
 
 
 @router.post("/me", response_model=FifotecaPlayerPublic)

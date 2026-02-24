@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { FifotecaReadLeaguesResponse, FifotecaReadLeagueTeamsData, FifotecaReadLeagueTeamsResponse, FifotecaSubmitMatchScoreData, FifotecaSubmitMatchScoreResponse, FifotecaConfirmMatchResultData, FifotecaConfirmMatchResultResponse, FifotecaListMatchesResponse, FifotecaGetMatchData, FifotecaGetMatchResponse, FifotecaGetPlayerProfileResponse, FifotecaCreateOrGetPlayerProfileResponse, FifotecaCreateRoomData, FifotecaCreateRoomResponse, FifotecaJoinRoomData, FifotecaJoinRoomResponse, FifotecaGetRoomData, FifotecaGetRoomResponse, FifotecaReadTeamsData, FifotecaReadTeamsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { FifotecaReadLeaguesResponse, FifotecaReadLeagueTeamsData, FifotecaReadLeagueTeamsResponse, FifotecaSubmitMatchScoreData, FifotecaSubmitMatchScoreResponse, FifotecaConfirmMatchResultData, FifotecaConfirmMatchResultResponse, FifotecaListMatchesResponse, FifotecaGetMatchData, FifotecaGetMatchResponse, FifotecaListPlayersResponse, FifotecaGetPlayerProfileResponse, FifotecaCreateOrGetPlayerProfileResponse, FifotecaCreateRoomData, FifotecaCreateRoomResponse, FifotecaJoinRoomData, FifotecaJoinRoomResponse, FifotecaGetRoomData, FifotecaGetRoomResponse, FifotecaReadTeamsData, FifotecaReadTeamsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class FifotecaService {
     /**
@@ -180,6 +180,19 @@ export class FifotecaService {
     }
     
     /**
+     * List Players
+     * List all registered Fifoteca players.
+     * @returns FifotecaPlayerPublic Successful Response
+     * @throws ApiError
+     */
+    public static listPlayers(): CancelablePromise<FifotecaListPlayersResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/players'
+        });
+    }
+    
+    /**
      * Get Player Profile
      * Get the current user's player profile with stats.
      *
@@ -266,7 +279,7 @@ export class FifotecaService {
      * Get room state including player states.
      *
      * Used for reconnection and state synchronization.
-     * Returns 404 if room doesn't exist or has expired.
+     * Returns 404 if room doesn't exist, 410 if room has expired.
      * @param data The data for the request.
      * @param data.code
      * @returns FifotecaRoomWithStatesPublic Successful Response
@@ -698,6 +711,19 @@ export class MatchesService {
 
 export class PlayersService {
     /**
+     * List Players
+     * List all registered Fifoteca players.
+     * @returns FifotecaPlayerPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaListPlayers(): CancelablePromise<FifotecaListPlayersResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/players'
+        });
+    }
+    
+    /**
      * Get Player Profile
      * Get the current user's player profile with stats.
      *
@@ -808,7 +834,7 @@ export class RoomsService {
      * Get room state including player states.
      *
      * Used for reconnection and state synchronization.
-     * Returns 404 if room doesn't exist or has expired.
+     * Returns 404 if room doesn't exist, 410 if room has expired.
      * @param data The data for the request.
      * @param data.code
      * @returns FifotecaRoomWithStatesPublic Successful Response

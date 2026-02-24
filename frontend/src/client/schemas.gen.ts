@@ -266,6 +266,11 @@ export const FifotecaMatchHistoryPublicSchema = {
             type: 'boolean',
             title: 'Confirmed'
         },
+        opponent_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Opponent Id'
+        },
         opponent_display_name: {
             type: 'string',
             title: 'Opponent Display Name'
@@ -277,6 +282,14 @@ export const FifotecaMatchHistoryPublicSchema = {
         opponent_team_name: {
             type: 'string',
             title: 'Opponent Team Name'
+        },
+        my_team_rating: {
+            type: 'integer',
+            title: 'My Team Rating'
+        },
+        opponent_team_rating: {
+            type: 'integer',
+            title: 'Opponent Team Rating'
         },
         my_score: {
             anyOf: [
@@ -306,7 +319,7 @@ export const FifotecaMatchHistoryPublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'created_at', 'round_number', 'rating_difference', 'confirmed', 'opponent_display_name', 'my_team_name', 'opponent_team_name', 'my_score', 'opponent_score', 'result'],
+    required: ['id', 'created_at', 'round_number', 'rating_difference', 'confirmed', 'opponent_id', 'opponent_display_name', 'my_team_name', 'opponent_team_name', 'my_team_rating', 'opponent_team_rating', 'my_score', 'opponent_score', 'result'],
     title: 'FifotecaMatchHistoryPublic',
     description: "Enriched match history from current player's perspective."
 } as const;

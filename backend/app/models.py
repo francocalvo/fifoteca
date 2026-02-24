@@ -437,9 +437,12 @@ class FifotecaMatchHistoryPublic(SQLModel):
     rating_difference: int
     confirmed: bool
     # Perspective-aware fields (from current player's viewpoint)
+    opponent_id: uuid.UUID
     opponent_display_name: str
     my_team_name: str
     opponent_team_name: str
+    my_team_rating: int
+    opponent_team_rating: int
     my_score: int | None
     opponent_score: int | None
     result: str  # "win", "loss", or "draw"

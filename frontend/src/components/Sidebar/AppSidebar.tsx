@@ -1,4 +1,4 @@
-import { Gamepad2, Users } from "lucide-react"
+import { BarChart3, Gamepad2, Users } from "lucide-react"
 
 import { SidebarAppearance } from "@/components/Common/Appearance"
 import { Logo } from "@/components/Common/Logo"
@@ -14,6 +14,7 @@ import { User } from "./User"
 
 const baseItems: Item[] = [
   { icon: Gamepad2, title: "Fifoteca", path: "/fifoteca" },
+  { icon: BarChart3, title: "Analytics", path: "/fifoteca/analytics" },
 ]
 
 export function AppSidebar() {

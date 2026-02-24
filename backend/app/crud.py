@@ -75,6 +75,12 @@ def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -
     return db_item
 
 
+def list_all_players(*, session: Session) -> list[FifotecaPlayer]:
+    """Return all registered Fifoteca players."""
+    statement = select(FifotecaPlayer)
+    return list(session.exec(statement).all())
+
+
 def get_player_by_user_id(
     *, session: Session, user_id: uuid.UUID
 ) -> FifotecaPlayer | None:

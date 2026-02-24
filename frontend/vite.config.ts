@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import path from "node:path"
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
@@ -7,6 +8,11 @@ import { VitePWA } from "vite-plugin-pwa"
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test-setup.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

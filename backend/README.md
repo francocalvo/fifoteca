@@ -63,6 +63,24 @@ alembic revision --autogenerate -m "Description of changes"
 alembic upgrade head
 ```
 
+## Fifoteca API Contracts
+
+### `GET /fifoteca/players`
+
+Returns all registered Fifoteca players. Requires authentication (401 without valid token). Response type: `list[FifotecaPlayerPublic]`.
+
+### `GET /fifoteca/matches` (analytics fields)
+
+Match history responses include perspective-aware analytics fields (values are from the authenticated player's viewpoint):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `opponent_id` | `uuid` | ID of the opposing player |
+| `my_team_rating` | `int` | Caller's team overall rating |
+| `opponent_team_rating` | `int` | Opponent's team overall rating |
+
+These fields enable client-side favorite/underdog classification and spread analytics without additional API calls.
+
 ## Seeding FIFA Data
 
 FIFA team data is seeded automatically on startup from `data/fifa_teams.csv`. To run manually:

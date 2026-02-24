@@ -3080,3 +3080,230 @@ def test_openapi_includes_matches_routes(client: TestClient) -> None:
 
     matches_confirm = spec["paths"]["/api/v1/fifoteca/matches/{id}/confirm"]["post"]
     assert "matches" in matches_confirm["tags"]
+
+
+# ---------------------------------------------------------------------------
+# Analytics-related endpoint tests
+# ---------------------------------------------------------------------------
+
+
+def test_list_players_returns_all_players(
+    client: TestClient,
+    normal_user_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    """GET /fifoteca/players returns all registered players with public fields."""
+    from app import crud
+    from app.models import UserCreate
+
+    user1_email = "list_players_user1@example.com"
+    user1 = crud.get_user_by_email(session=db, email=user1_email)
+    if not user1:
+        user1 = crud.create_user(
+            session=db, user_create=UserCreate(email=user1_email, password="testpass123")
+        )
+
+    user2_email = "list_players_user2@example.com"
+    user2 = crud.get_user_by_email(session=db, email=user2_email)
+    if not user2:
+        user2 = crud.create_user(
+            session=db, user_create=UserCreate(email=user2_email, password="testpass123")
+        )
+    db.commit()
+
+    player1 = FifotecaPlayer(
+        user_id=user1.id,
+        display_name="ListP1",
+        total_wins=5,
+        total_losses=3,
+        total_draws=1,
+        has_protection=False,
+    )
+    player2 = FifotecaPlayer(
+        user_id=user2.id,
+        display_name="ListP2",
+        total_wins=2,
+        total_losses=4,
+        total_draws=0,
+        has_protection=True,
+    )
+    db.add(player1)
+    db.add(player2)
+    db.commit()
+
+    response = client.get(
+        f"{settings.API_V1_STR}/fifoteca/players",
+        headers=normal_user_token_headers,
+    )
+
+    assert response.status_code == 200
+    content = response.json()
+    assert isinstance(content, list)
+    assert len(content) >= 2
+
+    # Find our test players in the response
+    ids_in_response = {p["id"] for p in content}
+    assert str(player1.id) in ids_in_response
+    assert str(player2.id) in ids_in_response
+
+    # Verify public field structure
+    p1_data = next(p for p in content if p["id"] == str(player1.id))
+    assert p1_data["display_name"] == "ListP1"
+    assert p1_data["total_wins"] == 5
+    assert p1_data["total_losses"] == 3
+    assert p1_data["total_draws"] == 1
+    assert p1_data["has_protection"] is False
+    assert "user_id" in p1_data
+
+    # Clean up
+    db.exec(delete(FifotecaPlayer).where(FifotecaPlayer.id == player1.id))
+    db.exec(delete(FifotecaPlayer).where(FifotecaPlayer.id == player2.id))
+    db.commit()
+
+
+def test_list_players_unauthorized(client: TestClient) -> None:
+    """GET /fifoteca/players requires authentication."""
+    response = client.get(f"{settings.API_V1_STR}/fifoteca/players")
+    assert response.status_code == 401
+
+
+def test_list_matches_analytics_fields(
+    client: TestClient,
+    normal_user_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    """GET /fifoteca/matches includes opponent_id, my_team_rating, opponent_team_rating."""
+    from app import crud
+    from app.models import User, UserCreate
+
+    # Create two users + players
+    user1_email = "analytics_fields_user1@example.com"
+    user1 = crud.get_user_by_email(session=db, email=user1_email)
+    if not user1:
+        user1 = crud.create_user(
+            session=db, user_create=UserCreate(email=user1_email, password="testpass123")
+        )
+
+    user2_email = "analytics_fields_user2@example.com"
+    user2 = crud.get_user_by_email(session=db, email=user2_email)
+    if not user2:
+        user2 = crud.create_user(
+            session=db, user_create=UserCreate(email=user2_email, password="testpass123")
+        )
+    db.commit()
+
+    player1 = FifotecaPlayer(
+        user_id=user1.id,
+        display_name="AnalyticsP1",
+        total_wins=0,
+        total_losses=0,
+        total_draws=0,
+        has_protection=False,
+    )
+    player2 = FifotecaPlayer(
+        user_id=user2.id,
+        display_name="AnalyticsP2",
+        total_wins=0,
+        total_losses=0,
+        total_draws=0,
+        has_protection=False,
+    )
+    db.add(player1)
+    db.add(player2)
+    db.flush()
+
+    league = FifaLeague(name="AnalyticsTestLeague", country="Test")
+    db.add(league)
+    db.flush()
+
+    team1 = FifaTeam(
+        name="AnalyticsTeamA",
+        league_id=league.id,
+        attack_rating=90,
+        midfield_rating=85,
+        defense_rating=80,
+        overall_rating=255,
+    )
+    team2 = FifaTeam(
+        name="AnalyticsTeamB",
+        league_id=league.id,
+        attack_rating=75,
+        midfield_rating=78,
+        defense_rating=82,
+        overall_rating=235,
+    )
+    db.add(team1)
+    db.add(team2)
+    db.flush()
+
+    room = FifotecaRoom(
+        code="ANLY01",
+        ruleset="standard",
+        player1_id=player1.id,
+        player2_id=player2.id,
+        current_turn_player_id=player1.id,
+        status=RoomStatus.COMPLETED,
+        round_number=1,
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+    )
+    db.add(room)
+    db.flush()
+
+    match = FifotecaMatch(
+        room_id=room.id,
+        round_number=1,
+        player1_id=player1.id,
+        player2_id=player2.id,
+        player1_team_id=team1.id,
+        player2_team_id=team2.id,
+        player1_score=3,
+        player2_score=1,
+        rating_difference=20,
+        confirmed=True,
+    )
+    db.add(match)
+    db.flush()
+
+    # Link player1 to normal_user (test user) so API returns this match
+    user = db.exec(select(User).where(User.email == settings.EMAIL_TEST_USER)).first()
+    if user:
+        player1.user_id = user.id
+        db.add(player1)
+        db.commit()
+
+    response = client.get(
+        f"{settings.API_V1_STR}/fifoteca/matches",
+        headers=normal_user_token_headers,
+    )
+
+    assert response.status_code == 200
+    content = response.json()
+    assert content["count"] >= 1
+
+    # Find our specific match
+    match_data = next(
+        (m for m in content["data"] if m["id"] == str(match.id)), None
+    )
+    assert match_data is not None
+
+    # Verify analytics-specific fields
+    assert match_data["opponent_id"] == str(player2.id)
+    assert match_data["my_team_rating"] == 255  # team1 overall_rating
+    assert match_data["opponent_team_rating"] == 235  # team2 overall_rating
+
+    # Verify perspective is correct (player1 perspective)
+    assert match_data["my_team_name"] == "AnalyticsTeamA"
+    assert match_data["opponent_team_name"] == "AnalyticsTeamB"
+    assert match_data["my_score"] == 3
+    assert match_data["opponent_score"] == 1
+    assert match_data["result"] == "win"
+
+    # Clean up
+    db.exec(delete(FifotecaMatch).where(FifotecaMatch.id == match.id))
+    db.exec(delete(FifotecaRoom).where(FifotecaRoom.id == room.id))
+    db.exec(delete(FifaTeam).where(FifaTeam.id == team1.id))
+    db.exec(delete(FifaTeam).where(FifaTeam.id == team2.id))
+    db.exec(delete(FifaLeague).where(FifaLeague.id == league.id))
+    db.exec(delete(FifotecaPlayer).where(FifotecaPlayer.id == player1.id))
+    db.exec(delete(FifotecaPlayer).where(FifotecaPlayer.id == player2.id))
+    db.commit()

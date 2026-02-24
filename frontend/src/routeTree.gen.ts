@@ -19,6 +19,7 @@ import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutFifotecaIndexRouteImport } from './routes/_layout/fifoteca/index'
 import { Route as LayoutFifotecaHistoryRouteImport } from './routes/_layout/fifoteca/history'
+import { Route as LayoutFifotecaAnalyticsRouteImport } from './routes/_layout/fifoteca/analytics'
 import { Route as LayoutFifotecaMatchMatchIdRouteImport } from './routes/_layout/fifoteca/match.$matchId'
 import { Route as LayoutFifotecaLobbyRoomCodeRouteImport } from './routes/_layout/fifoteca/lobby.$roomCode'
 import { Route as LayoutFifotecaGameRoomCodeRouteImport } from './routes/_layout/fifoteca/game.$roomCode'
@@ -72,6 +73,11 @@ const LayoutFifotecaHistoryRoute = LayoutFifotecaHistoryRouteImport.update({
   path: '/fifoteca/history',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutFifotecaAnalyticsRoute = LayoutFifotecaAnalyticsRouteImport.update({
+  id: '/fifoteca/analytics',
+  path: '/fifoteca/analytics',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutFifotecaMatchMatchIdRoute =
   LayoutFifotecaMatchMatchIdRouteImport.update({
     id: '/fifoteca/match/$matchId',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/settings': typeof LayoutSettingsRoute
+  '/fifoteca/analytics': typeof LayoutFifotecaAnalyticsRoute
   '/fifoteca/history': typeof LayoutFifotecaHistoryRoute
   '/fifoteca/': typeof LayoutFifotecaIndexRoute
   '/fifoteca/game/$roomCode': typeof LayoutFifotecaGameRoomCodeRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/admin': typeof LayoutAdminRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
+  '/fifoteca/analytics': typeof LayoutFifotecaAnalyticsRoute
   '/fifoteca/history': typeof LayoutFifotecaHistoryRoute
   '/fifoteca': typeof LayoutFifotecaIndexRoute
   '/fifoteca/game/$roomCode': typeof LayoutFifotecaGameRoomCodeRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/fifoteca/analytics': typeof LayoutFifotecaAnalyticsRoute
   '/_layout/fifoteca/history': typeof LayoutFifotecaHistoryRoute
   '/_layout/fifoteca/': typeof LayoutFifotecaIndexRoute
   '/_layout/fifoteca/game/$roomCode': typeof LayoutFifotecaGameRoomCodeRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/settings'
+    | '/fifoteca/analytics'
     | '/fifoteca/history'
     | '/fifoteca/'
     | '/fifoteca/game/$roomCode'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/settings'
     | '/'
+    | '/fifoteca/analytics'
     | '/fifoteca/history'
     | '/fifoteca'
     | '/fifoteca/game/$roomCode'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/_layout/admin'
     | '/_layout/settings'
     | '/_layout/'
+    | '/_layout/fifoteca/analytics'
     | '/_layout/fifoteca/history'
     | '/_layout/fifoteca/'
     | '/_layout/fifoteca/game/$roomCode'
@@ -261,6 +273,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutFifotecaHistoryRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/fifoteca/analytics': {
+      id: '/_layout/fifoteca/analytics'
+      path: '/fifoteca/analytics'
+      fullPath: '/fifoteca/analytics'
+      preLoaderRoute: typeof LayoutFifotecaAnalyticsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/fifoteca/match/$matchId': {
       id: '/_layout/fifoteca/match/$matchId'
       path: '/fifoteca/match/$matchId'
@@ -289,6 +308,7 @@ interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
+  LayoutFifotecaAnalyticsRoute: typeof LayoutFifotecaAnalyticsRoute
   LayoutFifotecaHistoryRoute: typeof LayoutFifotecaHistoryRoute
   LayoutFifotecaIndexRoute: typeof LayoutFifotecaIndexRoute
   LayoutFifotecaGameRoomCodeRoute: typeof LayoutFifotecaGameRoomCodeRoute
@@ -300,6 +320,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutIndexRoute: LayoutIndexRoute,
+  LayoutFifotecaAnalyticsRoute: LayoutFifotecaAnalyticsRoute,
   LayoutFifotecaHistoryRoute: LayoutFifotecaHistoryRoute,
   LayoutFifotecaIndexRoute: LayoutFifotecaIndexRoute,
   LayoutFifotecaGameRoomCodeRoute: LayoutFifotecaGameRoomCodeRoute,

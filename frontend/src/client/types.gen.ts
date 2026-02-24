@@ -56,9 +56,12 @@ export type FifotecaMatchHistoryPublic = {
     round_number: number;
     rating_difference: number;
     confirmed: boolean;
+    opponent_id: string;
     opponent_display_name: string;
     my_team_name: string;
     opponent_team_name: string;
+    my_team_rating: number;
+    opponent_team_rating: number;
     my_score: (number | null);
     opponent_score: (number | null);
     result: string;
@@ -288,6 +291,8 @@ export type FifotecaGetMatchData = {
 };
 
 export type FifotecaGetMatchResponse = (FifotecaMatchDetail);
+
+export type FifotecaListPlayersResponse = (Array<FifotecaPlayerPublic>);
 
 export type FifotecaGetPlayerProfileResponse = (FifotecaPlayerPublic);
 

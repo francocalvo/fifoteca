@@ -21,9 +21,11 @@ For production-like testing, build the Docker image instead. But for development
 
 - `src/client/` - Auto-generated OpenAPI client
 - `src/components/fifoteca/` - Game UI components (LeagueCard, TeamCard, SpinDisplay, ScoreInput, RatingComparison, MutualSuperspinDialog)
+- `src/components/fifoteca/` - Analytics components (OpponentSelector, H2HSummary, AnalyticsMatchHistory, SpreadAnalytics)
 - `src/hooks/useGameRoom.ts` - WebSocket-based game state management via React Query cache
 - `src/hooks/useFifotecaPlayer.ts` - Player profile hook
-- `src/routes/_layout/fifoteca/` - Route pages (lobby, game, match, history)
+- `src/lib/analytics.ts` - Client-side analytics computations (H2H stats, spread buckets, role classification)
+- `src/routes/_layout/fifoteca/` - Route pages (lobby, game, match, history, analytics)
 
 ## Generate API Client
 
@@ -36,6 +38,18 @@ bash ./scripts/generate-client.sh
 # Manual
 bun run generate-client
 ```
+
+## Analytics
+
+The `/fifoteca/analytics` route fetches players and match history from the API, then computes all analytics client-side using `src/lib/analytics.ts`. No server-side aggregation is needed — the frontend filters matches by selected opponent and derives H2H stats, spread buckets, and role classifications from the raw match data.
+
+## Unit Tests
+
+```bash
+bun run test:unit
+```
+
+Runs Vitest tests for analytics computation logic and component rendering (scoped to `src/**/*.test.{ts,tsx}`).
 
 ## E2E Tests
 

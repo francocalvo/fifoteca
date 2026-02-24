@@ -20,6 +20,17 @@ A real-time multiplayer FIFA companion game where two players compete in league/
 5. Players play the FIFA match and submit/confirm scores
 6. Protection is awarded based on match results
 
+## Analytics View
+
+An opponent-centric analytics page at `/fifoteca/analytics`:
+
+1. Select an opponent from the player list
+2. View **Head-to-Head summary** — W/L/D record, favorite/underdog splits, current streak, recent form
+3. Browse **Match History** — sortable table with signed rating diff and role badges
+4. Explore **Spread Analytics** — stacked bar chart showing win/draw/loss rates across 5 rating-difference buckets
+
+No analytics are shown until an opponent is selected. If the selected opponent has no matches, an empty-state message is displayed.
+
 ## Getting Started
 
 ### Prerequisites
@@ -59,6 +70,13 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 - Frontend docs: [frontend/README.md](./frontend/README.md)
 - Development guide: [development.md](./development.md)
 - Deployment guide: [deployment.md](./deployment.md)
+
+## Recent Updates
+
+**2026-02-24 — Analytics View**
+- Added `/fifoteca/analytics` route with opponent-scoped H2H, match history, and spread chart
+- Added `GET /fifoteca/players` endpoint (authenticated, returns all registered players)
+- Extended `GET /fifoteca/matches` response with `opponent_id`, `my_team_rating`, `opponent_team_rating`
 
 ## License
 
