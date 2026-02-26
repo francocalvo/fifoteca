@@ -1,9 +1,17 @@
 services:
+  prestart:
+    networks:
+      - default
+
   backend:
+    networks:
+      - default
     ports:
       - "${HOST_BACKEND_PORT:-18437}:8000"
 
   frontend:
+    networks:
+      - default
     ports:
       - "${HOST_FRONTEND_PORT:-53172}:80"
     build:
@@ -13,6 +21,8 @@ services:
 
   # Keep Adminer off by default in deployed environments.
   adminer:
+    networks:
+      - default
     profiles:
       - tools
 
