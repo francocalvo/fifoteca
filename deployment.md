@@ -2,7 +2,7 @@
 
 This document describes the deployment we actually use today.
 
-It replaces the old Traefik-first template deployment instructions.
+It describes the current SWAG (nginx) reverse-proxy deployment.
 
 ## Topology
 
@@ -66,19 +66,6 @@ ssh muad@192.168.1.4
 cd /home/muad/fifoteca
 git pull
 sudo docker compose -f compose.yml -f compose.deploy.yml up -d --build
-```
-
-## Podman Networking Caveat (Important)
-
-In this environment, with Podman-backed compose, app containers can become attached to both
-`fifoteca_default` and `fifoteca_traefik-public`, which has caused external reachability issues.
-
-After deploy, run:
-
-```bash
-sudo podman network disconnect -f fifoteca_traefik-public fifoteca_frontend_1
-sudo podman network disconnect -f fifoteca_traefik-public fifoteca_backend_1
-sudo podman network disconnect -f fifoteca_traefik-public fifoteca_prestart_1 || true
 ```
 
 ## SWAG Config

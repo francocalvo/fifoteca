@@ -29,10 +29,3 @@ services:
       - default
     profiles:
       - tools
-
-networks:
-  default:
-    driver: bridge
-  # In this deployment mode there's no external Traefik network.
-  traefik-public:
-    external: false

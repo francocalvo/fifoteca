@@ -154,7 +154,6 @@ This replaces named-volume-only behavior for deployment mode and allows host-vis
 
 ## Operational Notes and Caveats
 
-- In this environment, Podman dual-network attachment (`default` + `traefik-public`) has caused connectivity issues for exposed ports; operational workaround has been disconnecting `fifoteca_traefik-public` from app containers after deploy.
 - SWAG `proxy.conf` already sets `proxy_http_version` and several `proxy_set_header` directives; custom vhost files should avoid duplicating those directives.
 - `.env` is the source of runtime behavior (`VITE_API_URL`, CORS, auth, DB credentials, etc.).
 

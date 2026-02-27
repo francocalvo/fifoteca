@@ -9,7 +9,7 @@ A real-time multiplayer FIFA companion game where two players compete in league/
 - **Real-time**: WebSocket-based game state synchronization
 - **PWA**: Installable progressive web app with offline support
 - **Testing**: [Pytest](https://pytest.org) (backend) + [Playwright](https://playwright.dev) (E2E)
-- **Infrastructure**: [Docker Compose](https://www.docker.com) + [Traefik](https://traefik.io) reverse proxy
+- **Infrastructure**: [Docker Compose](https://www.docker.com) + SWAG (nginx) reverse proxy
 
 ## How It Works
 
