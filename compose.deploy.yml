@@ -1,5 +1,7 @@
 services:
   db:
+    ports:
+      - "54325:5432"
     volumes:
       - "${HOST_DB_DATA_PATH:-/home/muad/fifoteca/data/postgres}:/var/lib/postgresql/data/pgdata"
 
