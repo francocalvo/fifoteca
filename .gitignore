@@ -1,3 +1,4 @@
+.env
 .vscode/*
 !.vscode/extensions.json
 node_modules/
@@ -14,3 +15,5 @@ specs/*
 ralph.yml
 monitor.sh
 llm
+.env
+data/*
