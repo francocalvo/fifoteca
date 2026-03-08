@@ -1,15 +1,18 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { BarChart3, Users } from "lucide-react"
+import { BarChart3, Plus, Users } from "lucide-react"
 import { Suspense, useEffect, useMemo, useState } from "react"
 
 import { FifotecaService } from "@/client"
 import {
   AnalyticsMatchHistory,
   H2HSummary,
+  ManualMatchDialog,
   OpponentSelector,
+  PendingRequestsCard,
   SpreadAnalytics,
 } from "@/components/fifoteca"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import useFifotecaPlayer from "@/hooks/useFifotecaPlayer"
@@ -112,10 +115,16 @@ function AnalyticsPage() {
   const [selectedOpponentId, setSelectedOpponentId] = useState<
     string | undefined
   >(undefined)
+  const [showManualMatchDialog, setShowManualMatchDialog] = useState(false)
 
   const opponents = useMemo(
     () => players?.filter((p) => p.id !== player?.id) ?? [],
     [players, player],
+  )
+
+  const selectedOpponent = useMemo(
+    () => opponents.find((p) => p.id === selectedOpponentId),
+    [opponents, selectedOpponentId],
   )
 
   useEffect(() => {
@@ -136,12 +145,23 @@ function AnalyticsPage() {
         </p>
       </div>
 
+      {/* Pending Requests Card */}
+      <PendingRequestsCard />
+
       <Card>
         <CardHeader className="pb-3">
-          <OpponentSelector
-            value={selectedOpponentId}
-            onChange={setSelectedOpponentId}
-          />
+          <div className="flex items-center justify-between gap-4">
+            <OpponentSelector
+              value={selectedOpponentId}
+              onChange={setSelectedOpponentId}
+            />
+            {selectedOpponentId && (
+              <Button onClick={() => setShowManualMatchDialog(true)}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add Match
+              </Button>
+            )}
+          </div>
         </CardHeader>
       </Card>
 
@@ -162,6 +182,16 @@ function AnalyticsPage() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Manual Match Dialog */}
+      {selectedOpponentId && selectedOpponent && (
+        <ManualMatchDialog
+          open={showManualMatchDialog}
+          onOpenChange={setShowManualMatchDialog}
+          opponentId={selectedOpponentId}
+          opponentName={selectedOpponent.display_name}
+        />
       )}
     </div>
   )

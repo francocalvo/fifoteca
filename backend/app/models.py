@@ -31,6 +31,20 @@ class PlayerSpinPhase(str, Enum):
     READY_TO_PLAY = "READY_TO_PLAY"
 
 
+class ManualMatchRequestType(str, Enum):
+    CREATE = "create"
+    EDIT = "edit"
+    DELETE = "delete"
+
+
+class ManualMatchRequestStatus(str, Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
 # Shared properties
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
@@ -304,6 +318,70 @@ class FifotecaMatch(SQLModel, table=True):
     )
 
 
+# Manual Match Request
+class FifotecaManualMatchRequest(SQLModel, table=True):
+    """Request for manual match creation, edit, or deletion (requires opponent approval)."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    requester_id: uuid.UUID = Field(foreign_key="fifotecaplayer.id")
+    responder_id: uuid.UUID = Field(foreign_key="fifotecaplayer.id")
+    request_type: str = Field(default=ManualMatchRequestType.CREATE)
+    status: str = Field(default=ManualMatchRequestStatus.PENDING)
+
+    # For CREATE: new match data
+    requester_team_id: uuid.UUID | None = Field(
+        default=None, foreign_key="fifateam.id"
+    )
+    responder_team_id: uuid.UUID | None = Field(
+        default=None, foreign_key="fifateam.id"
+    )
+    requester_score: int | None = None
+    responder_score: int | None = None
+    rating_difference: int | None = None
+
+    # For EDIT/DELETE: reference to existing match
+    original_match_id: uuid.UUID | None = Field(
+        default=None, foreign_key="fifotecamatch.id"
+    )
+
+    # For EDIT: new scores
+    new_requester_score: int | None = None
+    new_responder_score: int | None = None
+
+    created_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    expires_at: datetime = Field(sa_type=DateTime(timezone=True))  # type: ignore
+
+    # Relationships
+    requester: FifotecaPlayer | None = Relationship(
+        sa_relationship_kwargs={
+            "foreign_keys": "[FifotecaManualMatchRequest.requester_id]"
+        }
+    )
+    responder: FifotecaPlayer | None = Relationship(
+        sa_relationship_kwargs={
+            "foreign_keys": "[FifotecaManualMatchRequest.responder_id]"
+        }
+    )
+    requester_team: FifaTeam | None = Relationship(
+        sa_relationship_kwargs={
+            "foreign_keys": "[FifotecaManualMatchRequest.requester_team_id]"
+        }
+    )
+    responder_team: FifaTeam | None = Relationship(
+        sa_relationship_kwargs={
+            "foreign_keys": "[FifotecaManualMatchRequest.responder_team_id]"
+        }
+    )
+    original_match: FifotecaMatch | None = Relationship(
+        sa_relationship_kwargs={
+            "foreign_keys": "[FifotecaManualMatchRequest.original_match_id]"
+        }
+    )
+
+
 # ============================================================================
 # Fifoteca Public Schemas (API Response Models)
 # ============================================================================
@@ -454,6 +532,69 @@ class MatchesPublic(SQLModel):
 
     data: list[FifotecaMatchHistoryPublic]
     count: int
+
+
+# Manual Match Request Schemas
+class ManualMatchCreateRequest(SQLModel):
+    """Request to create a manual match."""
+
+    opponent_id: uuid.UUID
+    my_team_id: uuid.UUID
+    opponent_team_id: uuid.UUID
+    my_score: int = Field(ge=0)
+    opponent_score: int = Field(ge=0)
+
+
+class ManualMatchEditRequest(SQLModel):
+    """Request to edit an existing match's scores."""
+
+    match_id: uuid.UUID
+    new_my_score: int = Field(ge=0)
+    new_opponent_score: int = Field(ge=0)
+
+
+class ManualMatchDeleteRequest(SQLModel):
+    """Request to delete an existing match."""
+
+    match_id: uuid.UUID
+
+
+class ManualMatchRequestPublic(SQLModel):
+    """Public schema for manual match request."""
+
+    id: uuid.UUID
+    request_type: str
+    status: str
+    requester_id: uuid.UUID
+    requester_display_name: str
+    responder_id: uuid.UUID
+    responder_display_name: str
+
+    # For CREATE requests
+    requester_team_name: str | None = None
+    responder_team_name: str | None = None
+    requester_team_rating: int | None = None
+    responder_team_rating: int | None = None
+    requester_score: int | None = None
+    responder_score: int | None = None
+    rating_difference: int | None = None
+
+    # For EDIT requests
+    original_match_id: uuid.UUID | None = None
+    current_requester_score: int | None = None
+    current_responder_score: int | None = None
+    new_requester_score: int | None = None
+    new_responder_score: int | None = None
+
+    created_at: datetime | None = None
+    expires_at: datetime
+
+
+class ManualMatchRequestsPublic(SQLModel):
+    """List of manual match requests."""
+
+    incoming: list[ManualMatchRequestPublic]
+    outgoing: list[ManualMatchRequestPublic]
 
 
 # Generic message
