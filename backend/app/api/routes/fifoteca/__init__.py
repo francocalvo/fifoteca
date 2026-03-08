@@ -2,10 +2,20 @@
 
 from fastapi import APIRouter
 
-from app.api.routes.fifoteca import global_ws, leagues, matches, players, rooms, teams, ws
+from app.api.routes.fifoteca import (
+    global_ws,
+    leagues,
+    manual_matches,
+    matches,
+    players,
+    rooms,
+    teams,
+    ws,
+)
 
 router = APIRouter(prefix="/fifoteca", tags=["fifoteca"])
 router.include_router(leagues.router)
+router.include_router(manual_matches.router)
 router.include_router(matches.router)
 router.include_router(players.router)
 router.include_router(rooms.router)

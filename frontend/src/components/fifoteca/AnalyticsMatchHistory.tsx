@@ -1,7 +1,11 @@
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, Pencil, Settings2, Trash2 } from "lucide-react"
+import { useCallback, useMemo, useState } from "react"
+import { toast } from "sonner"
 
+import { FifotecaService } from "@/client"
 import type { FifotecaMatchHistoryPublic } from "@/client"
+import { EditMatchDialog } from "@/components/fifoteca/EditMatchDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -124,8 +128,35 @@ interface AnalyticsMatchHistoryProps {
 }
 
 export function AnalyticsMatchHistory({ matches }: AnalyticsMatchHistoryProps) {
+  const queryClient = useQueryClient()
   const [sortKey, setSortKey] = useState<SortKey>("created_at")
   const [sortDir, setSortDir] = useState<SortDir>("desc")
+  const [editMode, setEditMode] = useState(false)
+  const [editingMatch, setEditingMatch] = useState<FifotecaMatchHistoryPublic | null>(null)
+  const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null)
+
+  const deleteMutation = useMutation({
+    mutationFn: (matchId: string) =>
+      FifotecaService.createDeleteRequest({
+        requestBody: { match_id: matchId },
+      }),
+    onSuccess: (_, matchId) => {
+      const match = matches.find((m) => m.id === matchId)
+      toast.success("Delete request sent", {
+        description: `Waiting for ${match?.opponent_display_name} to accept.`,
+      })
+      queryClient.invalidateQueries({
+        queryKey: ["fifoteca", "manual-match-requests"],
+      })
+      setDeletingMatchId(null)
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to create delete request", {
+        description: error.message,
+      })
+      setDeletingMatchId(null)
+    },
+  })
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -135,6 +166,18 @@ export function AnalyticsMatchHistory({ matches }: AnalyticsMatchHistoryProps) {
       setSortDir("desc")
     }
   }
+
+  const handleEdit = useCallback((match: FifotecaMatchHistoryPublic) => {
+    setEditingMatch(match)
+  }, [])
+
+  const handleDelete = useCallback(
+    (matchId: string) => {
+      setDeletingMatchId(matchId)
+      deleteMutation.mutate(matchId)
+    },
+    [deleteMutation],
+  )
 
   const sorted = useMemo(() => {
     const data = [...matches]
@@ -167,123 +210,171 @@ export function AnalyticsMatchHistory({ matches }: AnalyticsMatchHistoryProps) {
   }, [matches, sortKey, sortDir])
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Match History</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>
-                <SortHeader
-                  label="Date"
-                  sortKey="created_at"
-                  currentSort={sortKey}
-                  currentDir={sortDir}
-                  onSort={handleSort}
-                />
-              </TableHead>
-              <TableHead>
-                <SortHeader
-                  label="My Team"
-                  sortKey="my_team_name"
-                  currentSort={sortKey}
-                  currentDir={sortDir}
-                  onSort={handleSort}
-                />
-              </TableHead>
-              <TableHead>
-                <SortHeader
-                  label="Opp. Team"
-                  sortKey="opponent_team_name"
-                  currentSort={sortKey}
-                  currentDir={sortDir}
-                  onSort={handleSort}
-                />
-              </TableHead>
-              <TableHead>
-                <SortHeader
-                  label="Score"
-                  sortKey="score"
-                  currentSort={sortKey}
-                  currentDir={sortDir}
-                  onSort={handleSort}
-                />
-              </TableHead>
-              <TableHead>
-                <SortHeader
-                  label="Result"
-                  sortKey="result"
-                  currentSort={sortKey}
-                  currentDir={sortDir}
-                  onSort={handleSort}
-                />
-              </TableHead>
-              <TableHead>
-                <SortHeader
-                  label="Rating Diff"
-                  sortKey="rating_difference"
-                  currentSort={sortKey}
-                  currentDir={sortDir}
-                  onSort={handleSort}
-                />
-              </TableHead>
-              <TableHead>Role</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sorted.length === 0 ? (
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-lg">Match History</CardTitle>
+          <Button
+            variant={editMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => setEditMode(!editMode)}
+          >
+            <Settings2 className="h-4 w-4 mr-1" />
+            {editMode ? "Done" : "Edit"}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableCell
-                  colSpan={7}
-                  className="h-32 text-center text-muted-foreground"
-                >
-                  No matches found.
-                </TableCell>
+                <TableHead>
+                  <SortHeader
+                    label="Date"
+                    sortKey="created_at"
+                    currentSort={sortKey}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortHeader
+                    label="My Team"
+                    sortKey="my_team_name"
+                    currentSort={sortKey}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortHeader
+                    label="Opp. Team"
+                    sortKey="opponent_team_name"
+                    currentSort={sortKey}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortHeader
+                    label="Score"
+                    sortKey="score"
+                    currentSort={sortKey}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortHeader
+                    label="Result"
+                    sortKey="result"
+                    currentSort={sortKey}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortHeader
+                    label="Rating Diff"
+                    sortKey="rating_difference"
+                    currentSort={sortKey}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                </TableHead>
+                <TableHead>Role</TableHead>
+                {editMode && <TableHead className="w-[100px]">Actions</TableHead>}
               </TableRow>
-            ) : (
-              sorted.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell>{formatDate(m.created_at)}</TableCell>
-                  <TableCell className="font-medium">
-                    {m.my_team_name}
-                  </TableCell>
-                  <TableCell>{m.opponent_team_name}</TableCell>
-                  <TableCell className="font-mono">
-                    {m.my_score != null && m.opponent_score != null
-                      ? `${m.my_score} - ${m.opponent_score}`
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <ResultBadge result={m.result} />
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      const signedDiff =
-                        m.my_team_rating - m.opponent_team_rating
-                      if (signedDiff > 0) {
-                        return (
-                          <span className="text-green-600">+{signedDiff}</span>
-                        )
-                      }
-                      if (signedDiff < 0) {
-                        return (
-                          <span className="text-red-600">{signedDiff}</span>
-                        )
-                      }
-                      return <span className="text-muted-foreground">0</span>
-                    })()}
-                  </TableCell>
-                  <TableCell>
-                    <RoleBadge match={m} />
+            </TableHeader>
+            <TableBody>
+              {sorted.length === 0 ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell
+                    colSpan={editMode ? 8 : 7}
+                    className="h-32 text-center text-muted-foreground"
+                  >
+                    No matches found.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+              ) : (
+                sorted.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell>{formatDate(m.created_at)}</TableCell>
+                    <TableCell className="font-medium">
+                      {m.my_team_name}
+                    </TableCell>
+                    <TableCell>{m.opponent_team_name}</TableCell>
+                    <TableCell className="font-mono">
+                      {m.my_score != null && m.opponent_score != null
+                        ? `${m.my_score} - ${m.opponent_score}`
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <ResultBadge result={m.result} />
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const signedDiff =
+                          m.my_team_rating - m.opponent_team_rating
+                        if (signedDiff > 0) {
+                          return (
+                            <span className="text-green-600">+{signedDiff}</span>
+                          )
+                        }
+                        if (signedDiff < 0) {
+                          return (
+                            <span className="text-red-600">{signedDiff}</span>
+                          )
+                        }
+                        return <span className="text-muted-foreground">0</span>
+                      })()}
+                    </TableCell>
+                    <TableCell>
+                      <RoleBadge match={m} />
+                    </TableCell>
+                    {editMode && (
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEdit(m)}
+                            title="Edit score"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(m.id)}
+                            disabled={deletingMatchId === m.id}
+                            title="Delete match"
+                          >
+                            {deletingMatchId === m.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <EditMatchDialog
+        open={!!editingMatch}
+        onOpenChange={(open) => {
+          if (!open) setEditingMatch(null)
+        }}
+        match={editingMatch}
+      />
+    </>
   )
 }

@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
 
 import { Footer } from "@/components/Common/Footer"
 import { InviteReceivedDialog } from "@/components/fifoteca/InviteReceivedDialog"
+import { ManualMatchRequestDialog } from "@/components/fifoteca/ManualMatchRequestDialog"
 import AppSidebar from "@/components/Sidebar/AppSidebar"
 import {
   SidebarInset,
@@ -40,6 +41,7 @@ function Layout() {
         </SidebarInset>
       </SidebarProvider>
       <InviteReceivedDialog />
+      <ManualMatchRequestDialog />
     </GlobalWebSocketProvider>
   )
 }
