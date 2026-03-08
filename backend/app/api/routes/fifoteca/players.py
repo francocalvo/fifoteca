@@ -11,10 +11,11 @@ router = APIRouter(prefix="/players", tags=["players"])
 
 @router.get("", response_model=list[FifotecaPlayerPublic])
 def list_players(
-    session: SessionDep, current_user: CurrentUser  # noqa: ARG001
+    session: SessionDep, current_user: CurrentUser
 ) -> list[FifotecaPlayer]:
-    """List all registered Fifoteca players."""
-    return list_all_players(session=session)
+    """List all registered Fifoteca players (excluding the requesting user)."""
+    all_players = list_all_players(session=session)
+    return [p for p in all_players if p.user_id != current_user.id]
 
 
 @router.post("/me", response_model=FifotecaPlayerPublic)

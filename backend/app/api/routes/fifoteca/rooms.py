@@ -17,6 +17,7 @@ from app.models import (
     PlayerSpinPhase,
     RoomStatus,
 )
+from app.services.game_service import GameService
 
 router = APIRouter(prefix="/rooms", tags=["rooms"])
 
@@ -160,51 +161,8 @@ def join_room(
             detail="Room is already full",
         )
 
-    # Update room
-    room.player2_id = player.id
-    room.status = RoomStatus.SPINNING_LEAGUES
-    room.current_turn_player_id = room.player1_id
-    room.first_player_id = room.player1_id
-    session.add(room)
-    session.commit()
-    session.refresh(room)
-
-    # Initialize player states for both players, transferring any protection
-    # from previous games into superspin for this round.
-    player1 = session.get(FifotecaPlayer, room.player1_id)
-    player1_state = FifotecaPlayerState(
-        room_id=room.id,
-        player_id=room.player1_id,
-        round_number=1,
-        phase=PlayerSpinPhase.LEAGUE_SPINNING,
-        league_spins_remaining=3,
-        team_spins_remaining=3,
-        has_superspin=player1.has_protection if player1 else False,
-    )
-    session.add(player1_state)
-
-    player2_state = FifotecaPlayerState(
-        room_id=room.id,
-        player_id=player.id,
-        round_number=1,
-        phase=PlayerSpinPhase.LEAGUE_SPINNING,
-        league_spins_remaining=3,
-        team_spins_remaining=3,
-        has_superspin=player.has_protection,
-    )
-    session.add(player2_state)
-
-    # Clear has_protection after transferring to round state
-    if player1 and player1.has_protection:
-        player1.has_protection = False
-        session.add(player1)
-    if player.has_protection:
-        player.has_protection = False
-        session.add(player)
-
-    session.commit()
-    session.refresh(room)
-
+    # Join player to room (shared logic with invite accept)
+    room = GameService.join_player_to_room(session, room, player)
     return room
 
 

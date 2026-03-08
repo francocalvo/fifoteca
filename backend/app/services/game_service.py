@@ -618,6 +618,67 @@ class GameService:
         return response
 
     @staticmethod
+    def join_player_to_room(
+        session: Session, room: FifotecaRoom, player: FifotecaPlayer
+    ) -> FifotecaRoom:
+        """Join a player to a room as player2 and initialize player states.
+
+        This is the shared logic used by both the REST join endpoint and
+        the invite accept handler.
+
+        Args:
+            session: Database session.
+            room: The room to join (must be in WAITING status with no player2).
+            player: The player joining the room.
+
+        Returns:
+            The updated room.
+        """
+        room.player2_id = player.id
+        room.status = RoomStatus.SPINNING_LEAGUES
+        room.current_turn_player_id = room.player1_id
+        room.first_player_id = room.player1_id
+        session.add(room)
+        session.commit()
+        session.refresh(room)
+
+        # Initialize player states, transferring protection to superspin
+        player1 = session.get(FifotecaPlayer, room.player1_id)
+        player1_state = FifotecaPlayerState(
+            room_id=room.id,
+            player_id=room.player1_id,
+            round_number=1,
+            phase=PlayerSpinPhase.LEAGUE_SPINNING,
+            league_spins_remaining=3,
+            team_spins_remaining=3,
+            has_superspin=player1.has_protection if player1 else False,
+        )
+        session.add(player1_state)
+
+        player2_state = FifotecaPlayerState(
+            room_id=room.id,
+            player_id=player.id,
+            round_number=1,
+            phase=PlayerSpinPhase.LEAGUE_SPINNING,
+            league_spins_remaining=3,
+            team_spins_remaining=3,
+            has_superspin=player.has_protection,
+        )
+        session.add(player2_state)
+
+        # Clear has_protection after transferring
+        if player1 and player1.has_protection:
+            player1.has_protection = False
+            session.add(player1)
+        if player.has_protection:
+            player.has_protection = False
+            session.add(player)
+
+        session.commit()
+        session.refresh(room)
+        return room
+
+    @staticmethod
     def get_game_snapshot(session, room_code: str) -> dict:
         """Get full game snapshot for WebSocket state_sync.
 
@@ -708,6 +769,16 @@ class GameService:
                 ),
                 "round_number": room.round_number,
                 "mutual_superspin_active": room.mutual_superspin_active,
+                "mutual_superspin_proposer_id": (
+                    str(room.mutual_superspin_proposer_id)
+                    if room.mutual_superspin_proposer_id
+                    else None
+                ),
+                "superspin_request_proposer_id": (
+                    str(room.superspin_request_proposer_id)
+                    if room.superspin_request_proposer_id
+                    else None
+                ),
                 "expires_at": room.expires_at.isoformat(),
                 "created_at": room.created_at.isoformat() if room.created_at else None,
             },

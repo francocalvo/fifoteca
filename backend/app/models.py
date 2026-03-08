@@ -203,6 +203,7 @@ class FifotecaRoom(SQLModel, table=True):
     round_number: int = Field(default=1)
     mutual_superspin_proposer_id: uuid.UUID | None = None
     mutual_superspin_active: bool = Field(default=False)
+    superspin_request_proposer_id: uuid.UUID | None = None
     expires_at: datetime = Field(sa_type=DateTime(timezone=True))  # type: ignore
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,

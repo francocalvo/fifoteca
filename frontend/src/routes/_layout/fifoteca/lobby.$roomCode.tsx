@@ -1,6 +1,9 @@
+import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { Check, Copy, Users, Wifi, WifiOff } from "lucide-react"
-import { useEffect, useRef } from "react"
+import { Check, Copy, Send, Users, Wifi, WifiOff } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+
+import { FifotecaService } from "@/client"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { useGlobalWS } from "@/contexts/GlobalWebSocketContext"
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard"
 import useCustomToast from "@/hooks/useCustomToast"
 import useFifotecaPlayer from "@/hooks/useFifotecaPlayer"
@@ -35,6 +39,17 @@ function FifotecaLobbyPage() {
   const { showErrorToast } = useCustomToast()
   const hasNavigatedRef = useRef(false)
   const handledExpiryRef = useRef(false)
+
+  // Global WS for invites
+  const { sendMessage: sendGlobalMessage, lastGlobalMessage } = useGlobalWS()
+
+  // Invite tracking: invitee_id -> { pending, countdown }
+  const [inviteStates, setInviteStates] = useState<
+    Record<string, { pending: boolean; countdown: number }>
+  >({})
+  const countdownTimers = useRef<Record<string, ReturnType<typeof setInterval>>>(
+    {},
+  )
 
   // Normalize room code for display and cache consistency
   const normalizedRoomCode = roomCode.trim().toUpperCase()
@@ -62,12 +77,95 @@ function FifotecaLobbyPage() {
     (s) => s.player_id === room?.player2_id,
   )
 
+  // Fetch players list for inviting (only for host in WAITING)
+  const isWaitingHost = isPlayer1 && roomStatus === "WAITING"
+  const { data: allPlayers = [] } = useQuery({
+    queryKey: ["fifoteca", "players"],
+    queryFn: () => FifotecaService.listPlayers(),
+    enabled: isWaitingHost,
+    staleTime: 30_000,
+  })
+
+  const handleSendInvite = useCallback(
+    (inviteeUserId: string) => {
+      sendGlobalMessage("send_invite", {
+        invitee_id: inviteeUserId,
+        room_code: normalizedRoomCode,
+      })
+
+      // Optimistically mark as pending with countdown
+      setInviteStates((prev) => ({
+        ...prev,
+        [inviteeUserId]: { pending: true, countdown: 30 },
+      }))
+
+      // Start countdown timer
+      const timer = setInterval(() => {
+        setInviteStates((prev) => {
+          const state = prev[inviteeUserId]
+          if (!state || state.countdown <= 1) {
+            clearInterval(timer)
+            const { [inviteeUserId]: _, ...rest } = prev
+            return rest
+          }
+          return {
+            ...prev,
+            [inviteeUserId]: { ...state, countdown: state.countdown - 1 },
+          }
+        })
+      }, 1000)
+
+      countdownTimers.current[inviteeUserId] = timer
+    },
+    [sendGlobalMessage, normalizedRoomCode],
+  )
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(countdownTimers.current).forEach(clearInterval)
+    }
+  }, [])
+
+  // Listen for invite responses from global WS
+  useEffect(() => {
+    if (!lastGlobalMessage) return
+
+    if (
+      lastGlobalMessage.type === "invite_declined" ||
+      lastGlobalMessage.type === "invite_expired"
+    ) {
+      const inviteeId = lastGlobalMessage.payload?.invitee_id as
+        | string
+        | undefined
+      if (inviteeId && inviteStates[inviteeId]) {
+        const timer = countdownTimers.current[inviteeId]
+        if (timer) clearInterval(timer)
+        delete countdownTimers.current[inviteeId]
+        setInviteStates((prev) => {
+          const { [inviteeId]: _, ...rest } = prev
+          return rest
+        })
+      }
+    }
+
+    if (lastGlobalMessage.type === "error") {
+      const code = lastGlobalMessage.payload?.code as string | undefined
+      if (code === "USER_OFFLINE" || code === "INVITE_PENDING") {
+        // Clear all pending invite states on these errors
+        Object.keys(countdownTimers.current).forEach((key) => {
+          clearInterval(countdownTimers.current[key])
+          delete countdownTimers.current[key]
+        })
+        setInviteStates({})
+      }
+    }
+  }, [lastGlobalMessage, inviteStates])
+
   // Auto-navigate to game when both players connected AND room is ready for spinning
   useEffect(() => {
-    // Guard against multiple navigations
     if (hasNavigatedRef.current) return
 
-    // Check conditions for auto-navigation
     const isReadyForGame =
       hasPlayer2 && roomStatus === "SPINNING_LEAGUES" && normalizedRoomCode
 
@@ -81,7 +179,6 @@ function FifotecaLobbyPage() {
   }, [hasPlayer2, roomStatus, normalizedRoomCode, navigate])
 
   // Also navigate when we receive a player_connected message that indicates game is ready
-  // This handles the race condition where message arrives before cache is fully updated
   useEffect(() => {
     if (hasNavigatedRef.current) return
 
@@ -98,7 +195,7 @@ function FifotecaLobbyPage() {
     }
   }, [lastMessage, roomStatus, hasPlayer2, normalizedRoomCode, navigate])
 
-  // Handle room expiry - show toast and redirect to home
+  // Handle room expiry
   useEffect(() => {
     if (isRoomExpired && !handledExpiryRef.current) {
       handledExpiryRef.current = true
@@ -248,6 +345,48 @@ function FifotecaLobbyPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Invite a Player Card - only for host in WAITING */}
+      {isWaitingHost && allPlayers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Send className="size-5" />
+              <CardTitle>Invite a Player</CardTitle>
+            </div>
+            <CardDescription>
+              Send a game invite to an online player
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+              {allPlayers.map((p) => {
+                const inviteState = inviteStates[p.user_id]
+                return (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted"
+                  >
+                    <span className="text-sm font-medium truncate">
+                      {p.display_name}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSendInvite(p.user_id)}
+                      disabled={!!inviteState?.pending}
+                    >
+                      {inviteState?.pending
+                        ? `Invited (${inviteState.countdown}s)`
+                        : "Invite"}
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Room Status */}
       {roomStatus && (

@@ -9,6 +9,7 @@ import {
   FifotecaService,
 } from "@/client"
 import { MutualSuperspinDialog } from "@/components/fifoteca/MutualSuperspinDialog"
+import { SuperspinRequestDialog } from "@/components/fifoteca/SuperspinRequestDialog"
 import { RatingComparison } from "@/components/fifoteca/RatingComparison"
 import { SpinDisplay } from "@/components/fifoteca/SpinDisplay"
 import { TeamCard } from "@/components/fifoteca/TeamCard"
@@ -58,6 +59,10 @@ function FifotecaGamePage() {
 
   // Mutual superspin dialog state
   const [mutualSuperspinDialogOpen, setMutualSuperspinDialogOpen] =
+    useState(false)
+
+  // Superspin request dialog state
+  const [superspinRequestDialogOpen, setSuperspinRequestDialogOpen] =
     useState(false)
 
   // Timer refs for animation cleanup
@@ -143,6 +148,20 @@ function FifotecaGamePage() {
       message.type === "mutual_superspin_declined"
     ) {
       setMutualSuperspinDialogOpen(false)
+    }
+
+    if (message.type === "superspin_request_proposed") {
+      const payload = message.payload as { proposer_id: string }
+      if (payload.proposer_id !== currentPlayerId) {
+        setSuperspinRequestDialogOpen(true)
+      }
+    }
+
+    if (
+      message.type === "superspin_request_accepted" ||
+      message.type === "superspin_request_declined"
+    ) {
+      setSuperspinRequestDialogOpen(false)
     }
   }, [])
 
@@ -340,6 +359,21 @@ function FifotecaGamePage() {
     setMutualSuperspinDialogOpen(false)
   }, [sendAction])
 
+  const handleProposeSuperspinRequest = useCallback(() => {
+    if (!isConnected) return
+    sendAction("propose_superspin_request", {})
+  }, [isConnected, sendAction])
+
+  const handleAcceptSuperspinRequest = useCallback(() => {
+    sendAction("accept_superspin_request", {})
+    setSuperspinRequestDialogOpen(false)
+  }, [sendAction])
+
+  const handleDeclineSuperspinRequest = useCallback(() => {
+    sendAction("decline_superspin_request", {})
+    setSuperspinRequestDialogOpen(false)
+  }, [sendAction])
+
   // Convert leagues to SpinDisplay items format
   const leagueItems = useMemo(
     () => leagues.map((l) => ({ id: l.id, name: l.name })),
@@ -429,7 +463,7 @@ function FifotecaGamePage() {
               Room: <span className="font-mono">{normalizedRoomCode}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-center">
             <Badge variant={connectionStatus.variant}>
               {connectionStatus.text}
             </Badge>
@@ -494,6 +528,20 @@ function FifotecaGamePage() {
           >
             Ready to Play
           </Button>
+          {!myState?.has_superspin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleProposeSuperspinRequest}
+              disabled={
+                !isConnected ||
+                room?.superspin_request_proposer_id != null
+              }
+              className="w-full text-muted-foreground"
+            >
+              Request Superspin
+            </Button>
+          )}
         </div>
 
         {/* Mutual Superspin Dialog */}
@@ -503,6 +551,15 @@ function FifotecaGamePage() {
           onAccept={handleAcceptMutualSuperspin}
           onDecline={handleDeclineMutualSuperspin}
           onOpenChange={setMutualSuperspinDialogOpen}
+        />
+
+        {/* Superspin Request Dialog */}
+        <SuperspinRequestDialog
+          open={superspinRequestDialogOpen}
+          proposerName={opponentDisplayName}
+          onAccept={handleAcceptSuperspinRequest}
+          onDecline={handleDeclineSuperspinRequest}
+          onOpenChange={setSuperspinRequestDialogOpen}
         />
       </div>
     )
@@ -559,7 +616,7 @@ function FifotecaGamePage() {
             Room: <span className="font-mono">{normalizedRoomCode}</span>
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap justify-center">
           <Badge variant={connectionStatus.variant}>
             {connectionStatus.text}
           </Badge>
@@ -643,7 +700,7 @@ function FifotecaGamePage() {
 
       {/* Propose Mutual Superspin - available during spin phases */}
       {isSpinPhase && (
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-3">
           <Button
             variant="ghost"
             size="sm"
@@ -653,6 +710,20 @@ function FifotecaGamePage() {
           >
             Propose Mutual Superspin
           </Button>
+          {!myState?.has_superspin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleProposeSuperspinRequest}
+              disabled={
+                !isConnected ||
+                room?.superspin_request_proposer_id != null
+              }
+              className="text-muted-foreground"
+            >
+              Request Superspin
+            </Button>
+          )}
         </div>
       )}
 
@@ -663,6 +734,15 @@ function FifotecaGamePage() {
         onAccept={handleAcceptMutualSuperspin}
         onDecline={handleDeclineMutualSuperspin}
         onOpenChange={setMutualSuperspinDialogOpen}
+      />
+
+      {/* Superspin Request Dialog */}
+      <SuperspinRequestDialog
+        open={superspinRequestDialogOpen}
+        proposerName={opponentDisplayName}
+        onAccept={handleAcceptSuperspinRequest}
+        onDecline={handleDeclineSuperspinRequest}
+        onOpenChange={setSuperspinRequestDialogOpen}
       />
     </div>
   )

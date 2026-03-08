@@ -96,6 +96,12 @@ async def handle_message(
         await _handle_accept_mutual_superspin(session, room_code, player_id, websocket)
     elif message_type == "decline_mutual_superspin":
         await _handle_decline_mutual_superspin(session, room_code, player_id, websocket)
+    elif message_type == "propose_superspin_request":
+        await _handle_propose_superspin_request(session, room_code, player_id, websocket)
+    elif message_type == "accept_superspin_request":
+        await _handle_accept_superspin_request(session, room_code, player_id, websocket)
+    elif message_type == "decline_superspin_request":
+        await _handle_decline_superspin_request(session, room_code, player_id, websocket)
     else:
         # Unknown message type
         await _send_error(
@@ -323,6 +329,15 @@ async def _handle_propose_mutual_superspin(
             )
             return
 
+        # Check no superspin request is pending
+        if room.superspin_request_proposer_id is not None:
+            await _send_error(
+                websocket,
+                "INVALID_ACTION",
+                "Cannot propose mutual superspin while a superspin request is pending",
+            )
+            return
+
         # Set proposer
         room.mutual_superspin_proposer_id = player_uuid
         session.add(room)
@@ -472,6 +487,220 @@ async def _handle_decline_mutual_superspin(
             room_code,
             {
                 "type": "mutual_superspin_declined",
+                "payload": {"declined_by_id": player_id},
+            },
+        )
+
+    except Exception as e:
+        await _send_error(websocket, "INTERNAL_ERROR", str(e))
+
+
+async def _handle_propose_superspin_request(
+    session,
+    room_code: str,
+    player_id: str,
+    websocket: WebSocket,
+) -> None:
+    """Handle propose_superspin_request message.
+
+    A player requests a superspin from the opponent. Only the requester
+    gets superspin if accepted (no room reset).
+    """
+    try:
+        statement = select(FifotecaRoom).where(FifotecaRoom.code == room_code)
+        room = session.exec(statement).first()
+
+        if not room:
+            await _send_error(websocket, "ROOM_NOT_FOUND", "Room not found")
+            return
+
+        player_uuid = uuid.UUID(player_id)
+
+        if room.player1_id != player_uuid and room.player2_id != player_uuid:
+            await _send_error(
+                websocket, "NOT_A_PARTICIPANT", "You are not a room participant"
+            )
+            return
+
+        if room.status not in ("SPINNING_LEAGUES", "SPINNING_TEAMS", "RATING_REVIEW"):
+            await _send_error(
+                websocket,
+                "INVALID_ACTION",
+                f"Superspin request can only be proposed during spin or rating review phases, current status: {room.status}",
+            )
+            return
+
+        if room.superspin_request_proposer_id is not None:
+            await _send_error(
+                websocket,
+                "INVALID_ACTION",
+                "A superspin request is already pending",
+            )
+            return
+
+        # Check no mutual superspin proposal is pending
+        if room.mutual_superspin_proposer_id is not None:
+            await _send_error(
+                websocket,
+                "INVALID_ACTION",
+                "Cannot request superspin while a mutual superspin proposal is pending",
+            )
+            return
+
+        # Check if player already has superspin
+        from app.models import FifotecaPlayerState
+
+        ps_statement = select(FifotecaPlayerState).where(
+            FifotecaPlayerState.room_id == room.id,
+            FifotecaPlayerState.player_id == player_uuid,
+            FifotecaPlayerState.round_number == room.round_number,
+        )
+        player_state = session.exec(ps_statement).first()
+
+        if player_state and player_state.has_superspin:
+            await _send_error(
+                websocket,
+                "INVALID_ACTION",
+                "You already have a superspin",
+            )
+            return
+
+        room.superspin_request_proposer_id = player_uuid
+        session.add(room)
+        session.commit()
+
+        await manager.broadcast(
+            room_code,
+            {
+                "type": "superspin_request_proposed",
+                "payload": {"proposer_id": player_id},
+            },
+        )
+
+    except Exception as e:
+        await _send_error(websocket, "INTERNAL_ERROR", str(e))
+
+
+async def _handle_accept_superspin_request(
+    session,
+    room_code: str,
+    player_id: str,
+    websocket: WebSocket,
+) -> None:
+    """Handle accept_superspin_request message.
+
+    Grants superspin to the proposer only (no room reset).
+    """
+    try:
+        statement = select(FifotecaRoom).where(FifotecaRoom.code == room_code)
+        room = session.exec(statement).first()
+
+        if not room:
+            await _send_error(websocket, "ROOM_NOT_FOUND", "Room not found")
+            return
+
+        player_uuid = uuid.UUID(player_id)
+
+        if room.player1_id != player_uuid and room.player2_id != player_uuid:
+            await _send_error(
+                websocket, "NOT_A_PARTICIPANT", "You are not a room participant"
+            )
+            return
+
+        if room.superspin_request_proposer_id is None:
+            await _send_error(
+                websocket,
+                "INVALID_ACTION",
+                "No pending superspin request to accept",
+            )
+            return
+
+        if room.superspin_request_proposer_id == player_uuid:
+            await _send_error(
+                websocket,
+                "INVALID_ACTION",
+                "You cannot accept your own superspin request",
+            )
+            return
+
+        # Grant superspin to proposer
+        from app.models import FifotecaPlayerState
+
+        ps_statement = select(FifotecaPlayerState).where(
+            FifotecaPlayerState.room_id == room.id,
+            FifotecaPlayerState.player_id == room.superspin_request_proposer_id,
+            FifotecaPlayerState.round_number == room.round_number,
+        )
+        proposer_state = session.exec(ps_statement).first()
+
+        if proposer_state:
+            proposer_state.has_superspin = True
+            session.add(proposer_state)
+
+        # Clear request
+        room.superspin_request_proposer_id = None
+        session.add(room)
+        session.commit()
+
+        # Broadcast acceptance
+        await manager.broadcast(
+            room_code,
+            {
+                "type": "superspin_request_accepted",
+                "payload": {"accepted_by_id": player_id},
+            },
+        )
+
+        # Send updated state_sync
+        snapshot = GameService.get_game_snapshot(session=session, room_code=room_code)
+        await manager.broadcast(
+            room_code,
+            {"type": "state_sync", "payload": snapshot},
+        )
+
+    except Exception as e:
+        await _send_error(websocket, "INTERNAL_ERROR", str(e))
+
+
+async def _handle_decline_superspin_request(
+    session,
+    room_code: str,
+    player_id: str,
+    websocket: WebSocket,
+) -> None:
+    """Handle decline_superspin_request message."""
+    try:
+        statement = select(FifotecaRoom).where(FifotecaRoom.code == room_code)
+        room = session.exec(statement).first()
+
+        if not room:
+            await _send_error(websocket, "ROOM_NOT_FOUND", "Room not found")
+            return
+
+        player_uuid = uuid.UUID(player_id)
+
+        if room.player1_id != player_uuid and room.player2_id != player_uuid:
+            await _send_error(
+                websocket, "NOT_A_PARTICIPANT", "You are not a room participant"
+            )
+            return
+
+        if room.superspin_request_proposer_id is None:
+            await _send_error(
+                websocket,
+                "INVALID_ACTION",
+                "No pending superspin request to decline",
+            )
+            return
+
+        room.superspin_request_proposer_id = None
+        session.add(room)
+        session.commit()
+
+        await manager.broadcast(
+            room_code,
+            {
+                "type": "superspin_request_declined",
                 "payload": {"declined_by_id": player_id},
             },
         )

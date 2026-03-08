@@ -33,6 +33,7 @@ interface GameSnapshot {
     expires_at: string
     created_at: string | null
     mutual_superspin_proposer_id?: string | null
+    superspin_request_proposer_id?: string | null
     match_id?: string | null
   }
   player_states: Array<{
@@ -145,6 +146,9 @@ export type GameActionType =
   | "propose_mutual_superspin"
   | "accept_mutual_superspin"
   | "decline_mutual_superspin"
+  | "propose_superspin_request"
+  | "accept_superspin_request"
+  | "decline_superspin_request"
   | "ready_to_play"
   | "ping"
   | "play_again"
@@ -370,6 +374,40 @@ function processWsMessage(
     }
 
     case "mutual_superspin_accepted": {
+      queryClient.invalidateQueries({ queryKey: cacheKey })
+      break
+    }
+
+    case "superspin_request_proposed": {
+      const payload = message.payload as { proposer_id: string }
+      queryClient.setQueryData<GameSnapshot>(cacheKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          room: {
+            ...old.room,
+            superspin_request_proposer_id: payload.proposer_id,
+          },
+        }
+      })
+      break
+    }
+
+    case "superspin_request_declined": {
+      queryClient.setQueryData<GameSnapshot>(cacheKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          room: {
+            ...old.room,
+            superspin_request_proposer_id: null,
+          },
+        }
+      })
+      break
+    }
+
+    case "superspin_request_accepted": {
       queryClient.invalidateQueries({ queryKey: cacheKey })
       break
     }
