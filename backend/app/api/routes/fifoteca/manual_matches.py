@@ -497,7 +497,7 @@ async def accept_manual_match_request(
     if request.request_type == ManualMatchRequestType.CREATE:
         # Create the match
         match = FifotecaMatch(
-            room_id=uuid.uuid4(),  # Dummy room ID for manual matches
+            room_id=None,  # Manual matches have no room
             round_number=1,
             player1_id=request.requester_id,
             player2_id=request.responder_id,

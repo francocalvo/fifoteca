@@ -273,7 +273,7 @@ class FifotecaPlayerState(SQLModel, table=True):
 # Match Record
 class FifotecaMatch(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    room_id: uuid.UUID = Field(foreign_key="fifotecaroom.id")
+    room_id: uuid.UUID | None = Field(default=None, foreign_key="fifotecaroom.id")
     round_number: int
     player1_id: uuid.UUID = Field(foreign_key="fifotecaplayer.id")
     player2_id: uuid.UUID = Field(foreign_key="fifotecaplayer.id")
@@ -474,7 +474,7 @@ class FifotecaMatchPublic(SQLModel):
     """Public match schema (minimal)."""
 
     id: uuid.UUID
-    room_id: uuid.UUID
+    room_id: uuid.UUID | None
     round_number: int
     player1_id: uuid.UUID
     player2_id: uuid.UUID
@@ -490,7 +490,7 @@ class FifotecaMatchDetail(SQLModel):
     """Detailed match schema (with team and submitter info)."""
 
     id: uuid.UUID
-    room_id: uuid.UUID
+    room_id: uuid.UUID | None
     round_number: int
     player1_id: uuid.UUID
     player2_id: uuid.UUID
