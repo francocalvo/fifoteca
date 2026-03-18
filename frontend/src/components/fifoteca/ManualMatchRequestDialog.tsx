@@ -30,6 +30,7 @@ export interface ManualMatchRequestReceived {
   current_responder_score?: number
   new_requester_score?: number
   new_responder_score?: number
+  played_at?: string | null
   expires_at: string
 }
 
@@ -209,6 +210,15 @@ export function ManualMatchRequestDialog() {
           <div className="py-4 space-y-4">
             {pendingRequest.request_type === "create" && (
               <>
+                {pendingRequest.played_at && (
+                  <div className="text-center text-sm text-muted-foreground">
+                    Played on{" "}
+                    {new Date(pendingRequest.played_at).toLocaleDateString(
+                      "en-US",
+                      { month: "short", day: "numeric", year: "numeric" },
+                    )}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Your team:</span>

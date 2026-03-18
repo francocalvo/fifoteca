@@ -79,6 +79,7 @@ def build_request_public(
         result.requester_score = request.requester_score
         result.responder_score = request.responder_score
         result.rating_difference = request.rating_difference
+        result.played_at = request.played_at
 
     elif request.request_type in (
         ManualMatchRequestType.EDIT,
@@ -147,6 +148,7 @@ async def create_manual_match_request(
         requester_score=data.my_score,
         responder_score=data.opponent_score,
         rating_difference=rating_difference,
+        played_at=data.played_at,
         created_at=now,
         expires_at=now + timedelta(hours=REQUEST_EXPIRY_HOURS),
     )
@@ -174,6 +176,7 @@ async def create_manual_match_request(
                 "requester_score": data.my_score,
                 "responder_score": data.opponent_score,
                 "rating_difference": rating_difference,
+                "played_at": request.played_at.isoformat() if request.played_at else None,
                 "expires_at": request.expires_at.isoformat(),
             },
         },
@@ -508,6 +511,7 @@ async def accept_manual_match_request(
             rating_difference=request.rating_difference or 0,
             submitted_by_id=request.requester_id,
             confirmed=True,
+            created_at=request.played_at or datetime.now(UTC),
         )
 
         # Update player stats

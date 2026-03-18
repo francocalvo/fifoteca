@@ -179,6 +179,7 @@ export type ManualMatchCreateRequest = {
     opponent_team_id: string;
     my_score: number;
     opponent_score: number;
+    played_at?: (string | null);
 };
 
 /**
@@ -220,6 +221,7 @@ export type ManualMatchRequestPublic = {
     current_responder_score?: (number | null);
     new_requester_score?: (number | null);
     new_responder_score?: (number | null);
+    played_at?: (string | null);
     created_at?: (string | null);
     expires_at: string;
 };

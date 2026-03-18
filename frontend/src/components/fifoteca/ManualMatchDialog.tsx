@@ -39,20 +39,24 @@ export function ManualMatchDialog({
 }: ManualMatchDialogProps) {
   const queryClient = useQueryClient()
 
-  const [selectedLeagueId, setSelectedLeagueId] = useState<string>("")
+  const [myLeagueId, setMyLeagueId] = useState<string>("")
+  const [opponentLeagueId, setOpponentLeagueId] = useState<string>("")
   const [myTeamId, setMyTeamId] = useState<string>("")
   const [opponentTeamId, setOpponentTeamId] = useState<string>("")
   const [myScore, setMyScore] = useState<string>("")
   const [opponentScore, setOpponentScore] = useState<string>("")
+  const [playedAt, setPlayedAt] = useState<string>("")
 
   // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
-      setSelectedLeagueId("")
+      setMyLeagueId("")
+      setOpponentLeagueId("")
       setMyTeamId("")
       setOpponentTeamId("")
       setMyScore("")
       setOpponentScore("")
+      setPlayedAt("")
     }
   }, [open])
 
@@ -63,22 +67,30 @@ export function ManualMatchDialog({
     enabled: open,
   })
 
-  // Fetch teams for selected league
-  const { data: teams } = useQuery({
-    queryKey: ["fifoteca", "teams", selectedLeagueId],
+  // Fetch teams for my league
+  const { data: myTeams } = useQuery({
+    queryKey: ["fifoteca", "teams", myLeagueId],
     queryFn: () =>
-      FifotecaService.readTeams({ leagueId: selectedLeagueId || undefined }),
-    enabled: open && !!selectedLeagueId,
+      FifotecaService.readTeams({ leagueId: myLeagueId || undefined }),
+    enabled: open && !!myLeagueId,
+  })
+
+  // Fetch teams for opponent league
+  const { data: opponentTeams } = useQuery({
+    queryKey: ["fifoteca", "teams", opponentLeagueId],
+    queryFn: () =>
+      FifotecaService.readTeams({ leagueId: opponentLeagueId || undefined }),
+    enabled: open && !!opponentLeagueId,
   })
 
   // Get selected team objects
   const myTeam = useMemo(
-    () => teams?.find((t) => t.id === myTeamId),
-    [teams, myTeamId],
+    () => myTeams?.find((t) => t.id === myTeamId),
+    [myTeams, myTeamId],
   )
   const opponentTeam = useMemo(
-    () => teams?.find((t) => t.id === opponentTeamId),
-    [teams, opponentTeamId],
+    () => opponentTeams?.find((t) => t.id === opponentTeamId),
+    [opponentTeams, opponentTeamId],
   )
 
   // Calculate rating difference
@@ -97,6 +109,9 @@ export function ManualMatchDialog({
           opponent_team_id: opponentTeamId,
           my_score: parseInt(myScore, 10),
           opponent_score: parseInt(opponentScore, 10),
+          played_at: playedAt
+            ? new Date(playedAt + "T12:00:00").toISOString()
+            : null,
         },
       }),
     onSuccess: () => {
@@ -143,11 +158,28 @@ export function ManualMatchDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* League Selection */}
+          {/* Date */}
           <div className="grid gap-2">
-            <Label htmlFor="league">League</Label>
-            <Select value={selectedLeagueId} onValueChange={setSelectedLeagueId}>
-              <SelectTrigger id="league">
+            <Label htmlFor="playedAt">Date Played</Label>
+            <Input
+              id="playedAt"
+              type="date"
+              value={playedAt}
+              onChange={(e) => setPlayedAt(e.target.value)}
+            />
+          </div>
+
+          {/* Your League + Team */}
+          <div className="grid gap-2">
+            <Label>Your League</Label>
+            <Select
+              value={myLeagueId}
+              onValueChange={(val) => {
+                setMyLeagueId(val)
+                setMyTeamId("")
+              }}
+            >
+              <SelectTrigger>
                 <SelectValue placeholder="Select a league" />
               </SelectTrigger>
               <SelectContent>
@@ -160,58 +192,62 @@ export function ManualMatchDialog({
             </Select>
           </div>
 
-          {/* Team Selection */}
-          {selectedLeagueId && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="myTeam">Your Team</Label>
-                <Select
-                  value={myTeamId}
-                  onValueChange={(val) => {
-                    setMyTeamId(val)
-                    // Clear opponent team if same team selected
-                    if (val === opponentTeamId) {
-                      setOpponentTeamId("")
-                    }
-                  }}
-                >
-                  <SelectTrigger id="myTeam">
-                    <SelectValue placeholder="Select team" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teams?.map((team: FifaTeamPublic) => (
-                      <SelectItem key={team.id} value={team.id}>
-                        {team.name} ({team.overall_rating})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          {myLeagueId && (
+            <div className="grid gap-2">
+              <Label>Your Team</Label>
+              <Select value={myTeamId} onValueChange={setMyTeamId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select team" />
+                </SelectTrigger>
+                <SelectContent>
+                  {myTeams?.map((team: FifaTeamPublic) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name} ({team.overall_rating})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
-              <div className="grid gap-2">
-                <Label htmlFor="opponentTeam">{opponentName}&apos;s Team</Label>
-                <Select
-                  value={opponentTeamId}
-                  onValueChange={(val) => {
-                    setOpponentTeamId(val)
-                    // Clear my team if same team selected
-                    if (val === myTeamId) {
-                      setMyTeamId("")
-                    }
-                  }}
-                >
-                  <SelectTrigger id="opponentTeam">
-                    <SelectValue placeholder="Select team" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teams?.map((team: FifaTeamPublic) => (
-                      <SelectItem key={team.id} value={team.id}>
-                        {team.name} ({team.overall_rating})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Opponent League + Team */}
+          <div className="grid gap-2">
+            <Label>{opponentName}&apos;s League</Label>
+            <Select
+              value={opponentLeagueId}
+              onValueChange={(val) => {
+                setOpponentLeagueId(val)
+                setOpponentTeamId("")
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a league" />
+              </SelectTrigger>
+              <SelectContent>
+                {leagues?.map((league: FifaLeaguePublic) => (
+                  <SelectItem key={league.id} value={league.id}>
+                    {league.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {opponentLeagueId && (
+            <div className="grid gap-2">
+              <Label>{opponentName}&apos;s Team</Label>
+              <Select value={opponentTeamId} onValueChange={setOpponentTeamId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select team" />
+                </SelectTrigger>
+                <SelectContent>
+                  {opponentTeams?.map((team: FifaTeamPublic) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name} ({team.overall_rating})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 

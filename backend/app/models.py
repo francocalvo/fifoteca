@@ -348,6 +348,11 @@ class FifotecaManualMatchRequest(SQLModel, table=True):
     new_requester_score: int | None = None
     new_responder_score: int | None = None
 
+    # When the match was played (for CREATE requests)
+    played_at: datetime | None = Field(
+        default=None, sa_type=DateTime(timezone=True)  # type: ignore
+    )
+
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
@@ -543,6 +548,7 @@ class ManualMatchCreateRequest(SQLModel):
     opponent_team_id: uuid.UUID
     my_score: int = Field(ge=0)
     opponent_score: int = Field(ge=0)
+    played_at: datetime | None = None
 
 
 class ManualMatchEditRequest(SQLModel):
@@ -586,6 +592,7 @@ class ManualMatchRequestPublic(SQLModel):
     new_requester_score: int | None = None
     new_responder_score: int | None = None
 
+    played_at: datetime | None = None
     created_at: datetime | None = None
     expires_at: datetime
 
