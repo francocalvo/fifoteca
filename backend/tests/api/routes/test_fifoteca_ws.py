@@ -1,6 +1,6 @@
 """Tests for Fifoteca WebSocket endpoint."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -67,7 +67,7 @@ class TestWebSocketConnection:
             code="ABC123",
             status=RoomStatus.WAITING,
             player1_id=player.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -201,7 +201,7 @@ class TestWebSocketConnection:
             code="EXP123",
             status=RoomStatus.WAITING,
             player1_id=player.id,
-            expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),  # Expired
+            expires_at=datetime.now(UTC) - timedelta(minutes=1),  # Expired
         )
         db.add(room)
         db.commit()
@@ -270,7 +270,7 @@ class TestWebSocketConnection:
             code="ONLYP1",
             status=RoomStatus.WAITING,
             player1_id=player1.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -340,7 +340,7 @@ class TestWebSocketConnection:
             status=RoomStatus.SPINNING_LEAGUES,
             player1_id=player1.id,
             player2_id=player2.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -435,7 +435,7 @@ class TestWebSocketConnection:
             status=RoomStatus.SPINNING_LEAGUES,
             player1_id=player1.id,
             player2_id=player2.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -512,7 +512,7 @@ class TestWebSocketConnection:
             code="PING01",
             status=RoomStatus.WAITING,
             player1_id=player.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -568,7 +568,7 @@ class TestWebSocketConnection:
         db.refresh(player)
 
         # Create room with 5 minutes remaining (will be refreshed to 60 on connect)
-        initial_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+        initial_expiry = datetime.now(UTC) + timedelta(minutes=5)
         room = FifotecaRoom(
             code="EXPREF",
             status=RoomStatus.WAITING,
@@ -601,8 +601,8 @@ class TestWebSocketConnection:
             db.refresh(room)
             assert room.expires_at > initial_expiry
             # Should be approximately 60 minutes from now
-            expected_min = datetime.now(timezone.utc) + timedelta(minutes=59)
-            expected_max = datetime.now(timezone.utc) + timedelta(minutes=61)
+            expected_min = datetime.now(UTC) + timedelta(minutes=59)
+            expected_max = datetime.now(UTC) + timedelta(minutes=61)
             assert room.expires_at > expected_min
             assert room.expires_at < expected_max
 
@@ -631,7 +631,7 @@ class TestWebSocketConnection:
         db.refresh(player)
 
         # Create room with 5 minutes remaining
-        initial_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+        initial_expiry = datetime.now(UTC) + timedelta(minutes=5)
         room = FifotecaRoom(
             code="MSGEXP",
             status=RoomStatus.WAITING,
@@ -709,7 +709,7 @@ class TestGameService:
             code="SNAP01",
             status=RoomStatus.SPINNING_LEAGUES,
             player1_id=player.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -783,7 +783,7 @@ class TestGameService:
             status=RoomStatus.SPINNING_LEAGUES,
             player1_id=player1.id,
             player2_id=player2.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -883,7 +883,7 @@ class TestGameService:
             code="EXP999",
             status=RoomStatus.WAITING,
             player1_id=player.id,
-            expires_at=datetime.now(timezone.utc) - timedelta(hours=1),  # Expired
+            expires_at=datetime.now(UTC) - timedelta(hours=1),  # Expired
         )
         db.add(room)
         db.commit()
@@ -923,7 +923,7 @@ class TestGameService:
             code="EXPMRK",
             status=RoomStatus.WAITING,
             player1_id=player.id,
-            expires_at=datetime.now(timezone.utc) - timedelta(hours=1),  # Expired
+            expires_at=datetime.now(UTC) - timedelta(hours=1),  # Expired
         )
         db.add(room)
         db.commit()
@@ -1006,7 +1006,7 @@ class TestWebSocketGameFlow:
             current_turn_player_id=player1.id,
             first_player_id=player1.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -1148,7 +1148,7 @@ class TestWebSocketGameFlow:
             player2_id=player2.id,
             current_turn_player_id=player1.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -1266,7 +1266,7 @@ class TestWebSocketGameFlow:
             current_turn_player_id=player1.id,
             first_player_id=player1.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -1449,7 +1449,7 @@ class TestWebSocketGameFlow:
             current_turn_player_id=player1.id,
             first_player_id=player1.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -1565,7 +1565,7 @@ class TestWebSocketGameFlow:
             player2_id=player2.id,
             current_turn_player_id=player1.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -1663,7 +1663,7 @@ class TestWebSocketGameFlow:
             player1_id=player.id,
             current_turn_player_id=player.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -1728,7 +1728,7 @@ class TestWebSocketGameFlow:
             player1_id=player.id,
             current_turn_player_id=player.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -1791,7 +1791,7 @@ class TestWebSocketGameFlow:
             code="PING02",
             status=RoomStatus.WAITING,
             player1_id=player.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -1875,7 +1875,7 @@ class TestPlayAgainAndLeaveRoom:
             status=RoomStatus.COMPLETED,
             player1_id=player1.id,
             player2_id=player2.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -2050,7 +2050,7 @@ class TestPlayAgainAndLeaveRoom:
             status=RoomStatus.WAITING,
             player1_id=player1.id,
             player2_id=player2.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -2101,10 +2101,14 @@ class TestPlayAgainAndLeaveRoom:
                 # Player 1's socket should be closed
                 # (Test client raises exception on receive from closed socket)
 
-    def test_when_both_leave_room_status_becomes_completed(
+    def test_when_both_leave_room_stays_resumable(
         self, ws_client: TestClient, db: Session
     ) -> None:
-        """S11: When both players leave, room status becomes COMPLETED."""
+        """S11: When both players leave, the room stays resumable (not completed).
+
+        Players must be able to rejoin an in-progress room after an accidental
+        exit or app restart. Rooms are cleaned up by expiry instead.
+        """
         # Setup: Create two users, players, and room
         user1 = User(
             email="s11both1@example.com",
@@ -2145,7 +2149,7 @@ class TestPlayAgainAndLeaveRoom:
             status=RoomStatus.WAITING,
             player1_id=player1.id,
             player2_id=player2.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -2194,9 +2198,10 @@ class TestPlayAgainAndLeaveRoom:
                 # Player 2 leaves
                 ws2.send_json({"type": "leave_room", "payload": {}})
 
-        # After both leave, verify room status is COMPLETED
+        # After both leave, the room is NOT completed — it stays resumable
+        # so the players can rejoin (e.g. after an app restart)
         db.refresh(room)
-        assert room.status == "COMPLETED"
+        assert room.status != "COMPLETED"
 
     def test_play_again_rejected_in_non_completed_state(
         self, ws_client: TestClient, db: Session
@@ -2243,7 +2248,7 @@ class TestPlayAgainAndLeaveRoom:
             status=RoomStatus.WAITING,
             player1_id=player1.id,
             player2_id=player2.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -2336,7 +2341,7 @@ class TestMutualSuperspin:
             player2_id=player2.id,
             current_turn_player_id=player1.id,
             first_player_id=player1.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -2443,7 +2448,7 @@ class TestMutualSuperspin:
             first_player_id=player1.id,
             round_number=1,
             mutual_superspin_proposer_id=player1.id,  # Pending proposal
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -2571,7 +2576,7 @@ class TestMutualSuperspin:
             first_player_id=player1.id,
             round_number=1,
             mutual_superspin_proposer_id=player1.id,  # Pending proposal
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -2675,7 +2680,7 @@ class TestMutualSuperspin:
             first_player_id=player1.id,
             round_number=1,
             mutual_superspin_proposer_id=player1.id,  # Player1 is proposer
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()
@@ -2765,7 +2770,7 @@ class TestMutualSuperspin:
             current_turn_player_id=player1.id,
             first_player_id=player1.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+            expires_at=datetime.now(UTC) + timedelta(minutes=60),
         )
         db.add(room)
         db.commit()

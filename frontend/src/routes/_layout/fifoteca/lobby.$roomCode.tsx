@@ -47,9 +47,9 @@ function FifotecaLobbyPage() {
   const [inviteStates, setInviteStates] = useState<
     Record<string, { pending: boolean; countdown: number }>
   >({})
-  const countdownTimers = useRef<Record<string, ReturnType<typeof setInterval>>>(
-    {},
-  )
+  const countdownTimers = useRef<
+    Record<string, ReturnType<typeof setInterval>>
+  >({})
 
   // Normalize room code for display and cache consistency
   const normalizedRoomCode = roomCode.trim().toUpperCase()
@@ -162,14 +162,27 @@ function FifotecaLobbyPage() {
     }
   }, [lastGlobalMessage, inviteStates])
 
-  // Auto-navigate to game when both players connected AND room is ready for spinning
+  // Auto-navigate when the room is ready for play: spin phases go to the
+  // game page, match phases go to the game page too (it routes on to the
+  // match page using the snapshot's match_id). This makes resuming a
+  // room mid-match work from the lobby.
   useEffect(() => {
     if (hasNavigatedRef.current) return
 
-    const isReadyForGame =
-      hasPlayer2 && roomStatus === "SPINNING_LEAGUES" && normalizedRoomCode
+    const playableStatuses = [
+      "SPINNING_LEAGUES",
+      "SPINNING_TEAMS",
+      "RATING_REVIEW",
+      "MATCH_IN_PROGRESS",
+      "SCORE_SUBMITTED",
+    ]
 
-    if (isReadyForGame) {
+    if (
+      hasPlayer2 &&
+      roomStatus &&
+      playableStatuses.includes(roomStatus) &&
+      normalizedRoomCode
+    ) {
       hasNavigatedRef.current = true
       navigate({
         to: "/fifoteca/game/$roomCode",

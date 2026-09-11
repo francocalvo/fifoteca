@@ -225,6 +225,18 @@ function processWsMessage(
           player_states: old.player_states.map((state) => {
             if (state.player_id !== payload.player_id) return state
             const result = payload.result as Record<string, unknown>
+            // SAFETY: backend league spin_result payloads carry {id, name, country},
+            // matching the GameSnapshot current_league shape.
+            const resultLeague =
+              payload.type === "league" && result
+                ? (result as unknown as GameSnapshot["player_states"][0]["current_league"])
+                : null
+            // SAFETY: backend team spin_result payloads carry the full team shape
+            // (id/name/league_id/ratings), matching the GameSnapshot current_team shape.
+            const resultTeam =
+              payload.type === "team" && result
+                ? (result as unknown as GameSnapshot["player_states"][0]["current_team"])
+                : null
             return {
               ...state,
               current_league_id:
@@ -235,14 +247,8 @@ function processWsMessage(
                 payload.type === "team"
                   ? ((result?.id as string) ?? state.current_team_id)
                   : state.current_team_id,
-              current_league:
-                payload.type === "league" && result
-                  ? (result as unknown as GameSnapshot["player_states"][0]["current_league"])
-                  : state.current_league,
-              current_team:
-                payload.type === "team" && result
-                  ? (result as unknown as GameSnapshot["player_states"][0]["current_team"])
-                  : state.current_team,
+              current_league: resultLeague ?? state.current_league,
+              current_team: resultTeam ?? state.current_team,
               league_spins_remaining:
                 payload.type === "league" &&
                 payload.spins_remaining !== undefined
@@ -324,6 +330,20 @@ function processWsMessage(
           room: {
             ...old.room,
             status: "SCORE_SUBMITTED",
+          },
+        }
+      })
+      break
+    }
+
+    case "score_contested": {
+      queryClient.setQueryData<GameSnapshot>(cacheKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          room: {
+            ...old.room,
+            status: "MATCH_IN_PROGRESS",
           },
         }
       })

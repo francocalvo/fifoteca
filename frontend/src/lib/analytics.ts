@@ -64,8 +64,19 @@ function resultToType(result: string): ResultType {
   return "D"
 }
 
+/**
+ * Only confirmed matches contribute to analytics. Unconfirmed submissions
+ * are reported as "pending" by the backend and must not inflate W/L/D —
+ * this keeps the analytics consistent with the persisted player stats,
+ * which only update on confirmation.
+ */
+function isCounted(m: FifotecaMatchHistoryPublic): boolean {
+  return m.result === "win" || m.result === "loss" || m.result === "draw"
+}
+
 export function computeH2H(matches: FifotecaMatchHistoryPublic[]): H2HStats {
-  const totalMatches = matches.length
+  const counted = matches.filter(isCounted)
+  const totalMatches = counted.length
   let wins = 0
   let losses = 0
   let draws = 0
@@ -79,6 +90,7 @@ export function computeH2H(matches: FifotecaMatchHistoryPublic[]): H2HStats {
   let totalScoreDiff = 0
 
   for (const m of matches) {
+    if (!isCounted(m)) continue
     const role = getRole(m)
     const r = m.result
 
@@ -105,11 +117,11 @@ export function computeH2H(matches: FifotecaMatchHistoryPublic[]): H2HStats {
   // Streak: matches are already sorted by date desc, so index 0 is most recent
   let streakType: ResultType = "W"
   let streakCount = 0
-  if (matches.length > 0) {
-    streakType = resultToType(matches[0].result)
+  if (counted.length > 0) {
+    streakType = resultToType(counted[0].result)
     streakCount = 1
-    for (let i = 1; i < matches.length; i++) {
-      if (resultToType(matches[i].result) === streakType) {
+    for (let i = 1; i < counted.length; i++) {
+      if (resultToType(counted[i].result) === streakType) {
         streakCount++
       } else {
         break
@@ -117,8 +129,8 @@ export function computeH2H(matches: FifotecaMatchHistoryPublic[]): H2HStats {
     }
   }
 
-  // Recent form: last 10 matches (most recent first)
-  const recentForm = matches.slice(0, 10).map((m) => resultToType(m.result))
+  // Recent form: last 10 confirmed matches (most recent first)
+  const recentForm = counted.slice(0, 10).map((m) => resultToType(m.result))
 
   return {
     totalMatches,
@@ -146,14 +158,22 @@ export function computeH2H(matches: FifotecaMatchHistoryPublic[]): H2HStats {
 export function computeSpreadBuckets(
   matches: FifotecaMatchHistoryPublic[],
 ): SpreadBucket[] {
+  const counted = matches.filter(isCounted)
   return BUCKETS.map(({ label, range }) => {
-    const bucket = matches.filter(
+    const bucket = counted.filter(
       (m) => m.rating_difference >= range[0] && m.rating_difference <= range[1],
     )
     const n = bucket.length
 
     if (n === 0) {
-      return { label, range, favoriteWinPct: 0, drawPct: 0, underdogWinPct: 0, sampleSize: 0 }
+      return {
+        label,
+        range,
+        favoriteWinPct: 0,
+        drawPct: 0,
+        underdogWinPct: 0,
+        sampleSize: 0,
+      }
     }
 
     let favWins = 0
@@ -188,9 +208,10 @@ export function computeSpreadBuckets(
 export function computeSpreadPoints(
   matches: FifotecaMatchHistoryPublic[],
 ): SpreadPoint[] {
+  const counted = matches.filter(isCounted)
   const grouped = new Map<number, FifotecaMatchHistoryPublic[]>()
 
-  for (const m of matches) {
+  for (const m of counted) {
     const key = Math.min(m.rating_difference, 30)
     const arr = grouped.get(key)
     if (arr) arr.push(m)

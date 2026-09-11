@@ -3,14 +3,15 @@
 These tests provide comprehensive end-to-end coverage of:
 1. Full game flow: create room -> join -> spin/lock -> rating review -> ready -> match
 2. Room lifecycle: create -> join -> play -> play_again -> leave
-3. Edge cases: wrong turn, self-join, reconnect, expired room, special spin
+3. Edge cases: wrong turn, third-party join rejection, participant rejoin,
+   reconnect, expired room, special spin
 
 Tests use real REST endpoints and WebSocket connections against the test DB.
 Each test is idempotent with unique emails/codes generated per test.
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -156,7 +157,7 @@ def setup_room_in_spinning(
         current_turn_player_id=p1.id,
         first_player_id=p1.id,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room)
     db.commit()
@@ -324,7 +325,9 @@ class TestFullGameFlow:
 
                 phase_msg = find_message(msgs1, "phase_changed")
                 assert phase_msg is not None
-                assert phase_msg["payload"]["room_status"] == RoomStatus.MATCH_IN_PROGRESS
+                assert (
+                    phase_msg["payload"]["room_status"] == RoomStatus.MATCH_IN_PROGRESS
+                )
                 assert "match_id" in phase_msg["payload"]
 
                 db.expire_all()
@@ -350,7 +353,7 @@ class TestFullGameFlow:
             current_turn_player_id=None,
             first_player_id=p1.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
         db.add(room)
         db.commit()
@@ -429,7 +432,7 @@ class TestRoomLifecycle:
             current_turn_player_id=p1.id,
             first_player_id=p1.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
         db.add(room)
         db.commit()
@@ -504,7 +507,10 @@ class TestRoomLifecycle:
                 ws2.send_json({"type": "leave_room", "payload": {}})
 
         db.refresh(room)
-        assert room.status == RoomStatus.COMPLETED
+        # After both players leave, the room is NOT completed — it stays
+        # resumable so the players can rejoin after an app restart or
+        # accidental exit. Cleanup happens via room expiry instead.
+        assert room.status == RoomStatus.SPINNING_LEAGUES
 
 
 # =============================================================================
@@ -576,7 +582,7 @@ class TestReconnection:
             current_turn_player_id=p1.id,
             first_player_id=p1.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
         db.add(room)
         db.commit()
@@ -649,15 +655,15 @@ class TestReconnection:
 # =============================================================================
 
 
-class TestSelfJoinBlocked:
-    """Test self-join prevention at REST layer."""
+class TestParticipantRejoin:
+    """Participant rejoin at REST layer (rooms stay resumable after exit)."""
 
-    def test_self_join_returns_400(
+    def test_join_room_participant_rejoins_integration(
         self,
         client: TestClient,
         db: Session,
     ) -> None:
-        """S21.AC5a: Self-join blocked at REST join endpoint."""
+        """S21.AC5a: A participant rejoins their own room to resume a game."""
         tid = _uid()
         u1, p1 = create_test_user(db, f"sj_{tid}@test.com", "Self Joiner")
 
@@ -665,7 +671,7 @@ class TestSelfJoinBlocked:
             code=f"SJ{tid[:4]}",
             status=RoomStatus.WAITING,
             player1_id=p1.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
         db.add(room)
         db.commit()
@@ -675,8 +681,49 @@ class TestSelfJoinBlocked:
             f"{settings.API_V1_STR}/fifoteca/rooms/join/{room.code}",
             headers={"Authorization": f"Bearer {t1}"},
         )
+        # The host is a participant, so joining their own room is a rejoin
+        # (needed to resume a room after exit/disconnect)
+        assert response.status_code == 200
+        assert response.json()["code"] == room.code
+        assert response.json()["status"] == RoomStatus.WAITING
+
+
+class TestThirdUserJoinRejected:
+    """Non-participants are rejected once a room has two players."""
+
+    def test_third_user_join_rejected(
+        self,
+        client: TestClient,
+        db: Session,
+    ) -> None:
+        """S21.AC5a: A third user cannot join a room that is already playing."""
+        tid = _uid()
+        _u1, p1 = create_test_user(db, f"tj1_{tid}@test.com", "Room Host")
+        _u2, p2 = create_test_user(db, f"tj2_{tid}@test.com", "Second Player")
+        u3, _p3 = create_test_user(db, f"tj3_{tid}@test.com", "Third Wheel")
+
+        room = FifotecaRoom(
+            code=f"TJ{tid[:4]}",
+            status=RoomStatus.SPINNING_LEAGUES,
+            player1_id=p1.id,
+            player2_id=p2.id,
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
+        )
+        db.add(room)
+        db.commit()
+
+        t3 = make_token(u3)
+        response = client.post(
+            f"{settings.API_V1_STR}/fifoteca/rooms/join/{room.code}",
+            headers={"Authorization": f"Bearer {t3}"},
+        )
         assert response.status_code == 400
-        assert "Cannot join your own room" in response.json()["detail"]
+        assert "not accepting joins" in response.json()["detail"]
+
+        # The rejected join leaves the room untouched
+        db.refresh(room)
+        assert room.player2_id == p2.id
+        assert room.status == RoomStatus.SPINNING_LEAGUES
 
 
 class TestExpiredRoomRejection:
@@ -695,7 +742,7 @@ class TestExpiredRoomRejection:
             code=f"EX{tid[:4]}",
             status=RoomStatus.WAITING,
             player1_id=p1.id,
-            expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+            expires_at=datetime.now(UTC) - timedelta(minutes=1),
         )
         db.add(room)
         db.commit()
@@ -722,7 +769,7 @@ class TestExpiredRoomRejection:
             code=f"EJ{tid[:4]}",
             status=RoomStatus.WAITING,
             player1_id=p1.id,
-            expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+            expires_at=datetime.now(UTC) - timedelta(minutes=1),
         )
         db.add(room)
         db.commit()
@@ -747,7 +794,7 @@ class TestExpiredRoomRejection:
             code=f"EW{tid[:4]}",
             status=RoomStatus.SPINNING_LEAGUES,
             player1_id=p1.id,
-            expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+            expires_at=datetime.now(UTC) - timedelta(minutes=1),
         )
         db.add(room)
         db.commit()
@@ -806,7 +853,7 @@ class TestSpecialSpinFlow:
             current_turn_player_id=p1.id,
             first_player_id=p1.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
         db.add(room)
         db.commit()
@@ -916,7 +963,7 @@ class TestSpecialSpinFlow:
             current_turn_player_id=p1.id,
             first_player_id=p1.id,
             round_number=1,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
         db.add(room)
         db.commit()

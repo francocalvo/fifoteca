@@ -31,6 +31,37 @@ class SpinService:
     """Service for Fifoteca spin and lock logic."""
 
     @staticmethod
+    def _get_round_used_ids(
+        session: Session, player_state: FifotecaPlayerState
+    ) -> tuple[set[str], set[str]]:
+        """Get league and team IDs already used in the current round by ALL players.
+
+        A match is a single round between two players, so uniqueness is
+        enforced across both players' spin histories to prevent repeated
+        leagues/teams within the same match.
+
+        Args:
+            session: Database session.
+            player_state: The player state to derive room/round from.
+
+        Returns:
+            Tuple of (used_league_ids, used_team_ids) as sets of string IDs.
+        """
+        statement = select(FifotecaPlayerState).where(
+            FifotecaPlayerState.room_id == player_state.room_id,
+            FifotecaPlayerState.round_number == player_state.round_number,
+        )
+        round_states = session.exec(statement).all()
+
+        used_leagues: set[str] = set()
+        used_teams: set[str] = set()
+        for state in round_states:
+            used_leagues.update(state.used_league_ids or [])
+            used_teams.update(state.used_team_ids or [])
+
+        return used_leagues, used_teams
+
+    @staticmethod
     def spin_league(session: Session, player_state: FifotecaPlayerState) -> dict:
         """Pick random league and decrement spins remaining.
 
@@ -52,12 +83,16 @@ class SpinService:
 
         # Get all leagues
         statement = select(FifaLeague)
-        leagues = session.exec(statement).all()
+        leagues = list(session.exec(statement).all())
 
-        # Exclude previously spun leagues in this round
-        used = set(player_state.used_league_ids or [])
-        if used:
-            leagues = [l for l in leagues if str(l.id) not in used]
+        # Exclude leagues already used in this round (by either player)
+        round_used_leagues, _ = SpinService._get_round_used_ids(session, player_state)
+        if round_used_leagues:
+            available = [lg for lg in leagues if str(lg.id) not in round_used_leagues]
+            if available:
+                leagues = available
+            # Fallback: every league was already used this round (very small
+            # dataset) — allow reuse rather than breaking the game.
 
         if not leagues:
             raise ValueError("No leagues available")
@@ -65,8 +100,10 @@ class SpinService:
         # Pick random league
         league = random.choice(leagues)
 
-        # Track this league as used
-        player_state.used_league_ids = list(used | {str(league.id)})
+        # Track this league as used (own history only; exclusion above uses
+        # the round-wide set so neither player repeats a league in the match)
+        own_used = set(player_state.used_league_ids or [])
+        player_state.used_league_ids = list(own_used | {str(league.id)})
 
         # Update player state
         player_state.current_league_id = league.id
@@ -133,12 +170,16 @@ class SpinService:
         statement = select(FifaTeam).where(
             FifaTeam.league_id == player_state.current_league_id
         )
-        teams = session.exec(statement).all()
+        teams = list(session.exec(statement).all())
 
-        # Exclude previously spun teams in this round
-        used = set(player_state.used_team_ids or [])
-        if used:
-            teams = [t for t in teams if str(t.id) not in used]
+        # Exclude teams already used in this round (by either player)
+        _, round_used_teams = SpinService._get_round_used_ids(session, player_state)
+        if round_used_teams:
+            available = [t for t in teams if str(t.id) not in round_used_teams]
+            if available:
+                teams = available
+            # Fallback: every team in the league was already used this round
+            # (very small league) — allow reuse rather than breaking the game.
 
         if not teams:
             raise ValueError("No teams available in selected league")
@@ -146,8 +187,10 @@ class SpinService:
         # Pick random team
         team = random.choice(teams)
 
-        # Track this team as used
-        player_state.used_team_ids = list(used | {str(team.id)})
+        # Track this team as used (own history only; exclusion above uses the
+        # round-wide set so neither player repeats a team in the match)
+        own_used_teams = set(player_state.used_team_ids or [])
+        player_state.used_team_ids = list(own_used_teams | {str(team.id)})
 
         # Update player state
         player_state.current_team_id = team.id
@@ -327,15 +370,32 @@ class SpinService:
             (FifaTeam.overall_rating >= opponent_rating - 5)
             & (FifaTeam.overall_rating <= opponent_rating + 5)
         )
-        candidates = session.exec(statement).all()
+        candidates = list(session.exec(statement).all())
 
         if not candidates:
             raise SpecialSpinError(
                 f"No teams found within ±5 rating of opponent ({opponent_rating})"
             )
 
+        # Exclude teams already used in this round (by either player) so
+        # superspins never land on a repeated team within the same match.
+        _, used = SpinService._get_round_used_ids(session, player_state)
+        available = [t for t in candidates if str(t.id) not in used]
+        if available:
+            candidates = available
+        # Fallback: all in-range teams were already used — allow reuse rather
+        # than failing the superspin.
+
         # Randomly select one candidate
         selected_team = random.choice(candidates)
+
+        # Track this team and its league as used in this round
+        player_state.used_team_ids = list(
+            set(player_state.used_team_ids or []) | {str(selected_team.id)}
+        )
+        player_state.used_league_ids = list(
+            set(player_state.used_league_ids or []) | {str(selected_team.league_id)}
+        )
 
         # Update player state
         player_state.current_team_id = selected_team.id
@@ -390,7 +450,14 @@ class SpinService:
                 & (FifaTeam.overall_rating >= opponent_rating - 29)
                 & (FifaTeam.overall_rating <= opponent_rating + 29)
             )
-            same_league_candidates = session.exec(statement).all()
+            same_league_candidates = list(session.exec(statement).all())
+
+            # Exclude teams already used in this round (by either player)
+            _, used = SpinService._get_round_used_ids(session, player_state)
+            if used:
+                filtered = [t for t in same_league_candidates if str(t.id) not in used]
+                if filtered:
+                    same_league_candidates = filtered
 
             if same_league_candidates:
                 selected_team = random.choice(same_league_candidates)
@@ -402,15 +469,31 @@ class SpinService:
                 (FifaTeam.overall_rating >= opponent_rating - 29)
                 & (FifaTeam.overall_rating <= opponent_rating + 29)
             )
-            all_candidates = session.exec(statement).all()
+            all_candidates = list(session.exec(statement).all())
 
             if not all_candidates:
                 raise SpecialSpinError(
                     f"No teams found within ±29 rating of opponent ({opponent_rating})"
                 )
 
+            # Exclude teams already used in this round (by either player)
+            _, used = SpinService._get_round_used_ids(session, player_state)
+            if used:
+                filtered = [t for t in all_candidates if str(t.id) not in used]
+                if filtered:
+                    all_candidates = filtered
+                # Fallback: all in-range teams were already used — allow reuse
+
             selected_team = random.choice(all_candidates)
             was_fallback = True
+
+        # Track this team and its league as used in this round
+        player_state.used_team_ids = list(
+            set(player_state.used_team_ids or []) | {str(selected_team.id)}
+        )
+        player_state.used_league_ids = list(
+            set(player_state.used_league_ids or []) | {str(selected_team.league_id)}
+        )
 
         # Update player state
         player_state.current_team_id = selected_team.id

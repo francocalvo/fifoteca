@@ -100,7 +100,8 @@ function FifotecaMatchPage() {
     // Refetch match on score_submitted or match_result
     if (
       lastMessage.type === "score_submitted" ||
-      lastMessage.type === "match_result"
+      lastMessage.type === "match_result" ||
+      lastMessage.type === "score_contested"
     ) {
       refetchMatch()
       // Invalidate player profile to get updated stats
@@ -159,6 +160,14 @@ function FifotecaMatchPage() {
     },
   })
 
+  // Score contest mutation (allows correcting a wrong submitted score)
+  const contestMutation = useMutation({
+    mutationFn: () => FifotecaService.contestMatchScore({ id: matchId }),
+    onSuccess: () => {
+      refetchMatch()
+    },
+  })
+
   // Action handlers
   const handleSubmitScore = useCallback(
     (player1Score: number, player2Score: number) => {
@@ -170,6 +179,10 @@ function FifotecaMatchPage() {
   const handleConfirm = useCallback(() => {
     confirmMutation.mutate()
   }, [confirmMutation])
+
+  const handleContest = useCallback(() => {
+    contestMutation.mutate()
+  }, [contestMutation])
 
   const handlePlayAgain = useCallback(() => {
     if (!isConnected || !roomCode) return
@@ -349,13 +362,31 @@ function FifotecaMatchPage() {
               </div>
             </div>
 
-            <Button
-              onClick={handleConfirm}
-              className="w-full"
-              disabled={confirmMutation.isPending}
-            >
-              {confirmMutation.isPending ? "Confirming..." : "Confirm Score"}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleConfirm}
+                className="flex-1"
+                disabled={
+                  confirmMutation.isPending || contestMutation.isPending
+                }
+              >
+                {confirmMutation.isPending ? "Confirming..." : "Confirm Score"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleContest}
+                disabled={
+                  confirmMutation.isPending || contestMutation.isPending
+                }
+                className="flex-1"
+              >
+                {contestMutation.isPending ? "Contesting..." : "Contest Score"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Contesting resets the scores so either player can enter the
+              correct result.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -383,6 +414,13 @@ function FifotecaMatchPage() {
                   <p className="text-3xl font-bold">{match.player2_score}</p>
                 </div>
               </div>
+              <Button
+                variant="outline"
+                onClick={handleContest}
+                disabled={contestMutation.isPending}
+              >
+                {contestMutation.isPending ? "Resetting..." : "Edit Score"}
+              </Button>
             </div>
           </CardContent>
         </Card>

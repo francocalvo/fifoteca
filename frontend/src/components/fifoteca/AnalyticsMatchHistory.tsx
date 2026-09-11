@@ -1,10 +1,17 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, Pencil, Settings2, Trash2 } from "lucide-react"
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Loader2,
+  Pencil,
+  Settings2,
+  Trash2,
+} from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { toast } from "sonner"
-
-import { FifotecaService } from "@/client"
 import type { FifotecaMatchHistoryPublic } from "@/client"
+import { FifotecaService } from "@/client"
 import { EditMatchDialog } from "@/components/fifoteca/EditMatchDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -50,6 +57,12 @@ function ResultBadge({ result }: { result: string }) {
       return (
         <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
           D
+        </Badge>
+      )
+    case "pending":
+      return (
+        <Badge variant="secondary" className="text-xs">
+          Pending
         </Badge>
       )
     default:
@@ -132,7 +145,8 @@ export function AnalyticsMatchHistory({ matches }: AnalyticsMatchHistoryProps) {
   const [sortKey, setSortKey] = useState<SortKey>("created_at")
   const [sortDir, setSortDir] = useState<SortDir>("desc")
   const [editMode, setEditMode] = useState(false)
-  const [editingMatch, setEditingMatch] = useState<FifotecaMatchHistoryPublic | null>(null)
+  const [editingMatch, setEditingMatch] =
+    useState<FifotecaMatchHistoryPublic | null>(null)
   const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null)
 
   const deleteMutation = useMutation({
@@ -282,7 +296,9 @@ export function AnalyticsMatchHistory({ matches }: AnalyticsMatchHistoryProps) {
                   />
                 </TableHead>
                 <TableHead>Role</TableHead>
-                {editMode && <TableHead className="w-[100px]">Actions</TableHead>}
+                {editMode && (
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -317,7 +333,9 @@ export function AnalyticsMatchHistory({ matches }: AnalyticsMatchHistoryProps) {
                           m.my_team_rating - m.opponent_team_rating
                         if (signedDiff > 0) {
                           return (
-                            <span className="text-green-600">+{signedDiff}</span>
+                            <span className="text-green-600">
+                              +{signedDiff}
+                            </span>
                           )
                         }
                         if (signedDiff < 0) {

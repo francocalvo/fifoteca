@@ -5,7 +5,7 @@ and game action orchestration.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlmodel import Session, and_, select
@@ -36,7 +36,7 @@ def check_room_expiry(room: FifotecaRoom, session: Session) -> None:
     Raises:
         HTTPException: 410 Gone if room has expired.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if room.expires_at < now:
         # Mark as completed if not already
         if room.status != RoomStatus.COMPLETED:
@@ -714,6 +714,16 @@ class GameService:
         )
         player_states = session.exec(statement).all()
 
+        # Resolve the match for the current round (so clients can route to the
+        # match page when resuming a room mid-match)
+        match_statement = select(FifotecaMatch).where(
+            and_(
+                FifotecaMatch.room_id == room.id,
+                FifotecaMatch.round_number == room.round_number,
+            )
+        )
+        current_match = session.exec(match_statement).first()
+
         # Resolve league/team objects for each player state
         def _resolve_league(league_id):
             if not league_id:
@@ -768,6 +778,7 @@ class GameService:
                     str(room.first_player_id) if room.first_player_id else None
                 ),
                 "round_number": room.round_number,
+                "match_id": str(current_match.id) if current_match else None,
                 "mutual_superspin_active": room.mutual_superspin_active,
                 "mutual_superspin_proposer_id": (
                     str(room.mutual_superspin_proposer_id)

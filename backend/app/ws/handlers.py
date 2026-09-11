@@ -5,7 +5,7 @@ game service handlers and broadcasts results to connected clients.
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, WebSocket, WebSocketDisconnect
 from sqlmodel import select
@@ -62,9 +62,7 @@ async def handle_message(
         return
 
     # Refresh expiry on activity
-    room.expires_at = datetime.now(timezone.utc) + timedelta(
-        minutes=ROOM_EXPIRY_MINUTES
-    )
+    room.expires_at = datetime.now(UTC) + timedelta(minutes=ROOM_EXPIRY_MINUTES)
     session.add(room)
     session.commit()
 
@@ -97,11 +95,15 @@ async def handle_message(
     elif message_type == "decline_mutual_superspin":
         await _handle_decline_mutual_superspin(session, room_code, player_id, websocket)
     elif message_type == "propose_superspin_request":
-        await _handle_propose_superspin_request(session, room_code, player_id, websocket)
+        await _handle_propose_superspin_request(
+            session, room_code, player_id, websocket
+        )
     elif message_type == "accept_superspin_request":
         await _handle_accept_superspin_request(session, room_code, player_id, websocket)
     elif message_type == "decline_superspin_request":
-        await _handle_decline_superspin_request(session, room_code, player_id, websocket)
+        await _handle_decline_superspin_request(
+            session, room_code, player_id, websocket
+        )
     else:
         # Unknown message type
         await _send_error(
@@ -253,14 +255,9 @@ async def _handle_leave_room(
             },
         )
 
-        # Check if any players remain connected
-        remaining_players = manager.get_connected_players(room_code)
-
-        if not remaining_players:
-            # No players remain - mark room as COMPLETED
-            room.status = "COMPLETED"
-            session.add(room)
-            session.commit()
+        # NOTE: rooms are no longer marked COMPLETED when everyone disconnects.
+        # Players must be able to rejoin an in-progress room (e.g. after an app
+        # restart or accidental exit). Rooms are cleaned up by expiry instead.
 
         # Raise WebSocketDisconnect to signal message loop to exit
         # This triggers the normal disconnect handling in ws.py

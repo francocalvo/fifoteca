@@ -3,7 +3,7 @@
 import uuid
 
 from fastapi import APIRouter, HTTPException, status
-from sqlmodel import Session, or_, select
+from sqlmodel import Session, col, or_, select, update
 
 from app.api.deps import CurrentUser, SessionDep
 from app.models import (
@@ -86,6 +86,22 @@ def validate_match_participation(match: FifotecaMatch, player_id: uuid.UUID) -> 
         )
 
 
+def raise_score_state_conflict() -> None:
+    """Raise 409 when an atomic score transition no longer applies.
+
+    The score state changed between our read and our conditional UPDATE: the
+    other player confirmed, contested, or re-submitted in the meantime. The
+    caller must refresh and act on the new state.
+
+    Raises:
+        HTTPException: Always, with 409 Conflict.
+    """
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Score state changed, refresh and try again",
+    )
+
+
 @router.post("/{id}/score", response_model=FifotecaMatchPublic)
 async def submit_match_score(
     id: uuid.UUID,
@@ -147,15 +163,31 @@ async def submit_match_score(
             detail="Room not in MATCH_IN_PROGRESS status",
         )
 
-    # Submit scores
-    match.player1_score = score_data.player1_score
-    match.player2_score = score_data.player2_score
-    match.submitted_by_id = player.id
+    # Claim the submission atomically: the checks above are best-effort guards
+    # for clear error messages, but only the first writer may set the scores.
+    # The room-status precondition stays a guard only (it lives in another
+    # table), so a concurrent transition can also surface as 409.
+    claim = session.exec(
+        update(FifotecaMatch)
+        .where(
+            col(FifotecaMatch.id) == match.id,
+            col(FifotecaMatch.confirmed).is_(False),
+            col(FifotecaMatch.submitted_by_id).is_(None),
+        )
+        .values(
+            player1_score=score_data.player1_score,
+            player2_score=score_data.player2_score,
+            submitted_by_id=player.id,
+        )
+    )
+
+    if claim.rowcount != 1:
+        session.rollback()
+        raise_score_state_conflict()
 
     # Update room status
     room.status = RoomStatus.SCORE_SUBMITTED
 
-    session.add(match)
     session.add(room)
     session.commit()
     session.refresh(match)
@@ -177,6 +209,98 @@ async def submit_match_score(
     )
 
     # Return as public schema
+    return FifotecaMatchPublic.model_validate(match)
+
+
+@router.post("/{id}/contest", response_model=FifotecaMatchPublic)
+async def contest_match_score(
+    id: uuid.UUID,
+    current_user: CurrentUser,
+    session: SessionDep,
+) -> FifotecaMatchPublic:
+    """Contest a submitted score so it can be corrected.
+
+    Any participant can contest a submitted (but not yet confirmed) score.
+    This clears the submitted scores and puts the match back into
+    MATCH_IN_PROGRESS so either player can re-enter the correct result.
+
+    Args:
+        id: The match ID.
+        current_user: The authenticated user.
+        session: Database session.
+
+    Returns:
+        The reset match.
+
+    Raises:
+        HTTPException: If player not participant (403).
+        HTTPException: If no scores submitted (400).
+        HTTPException: If match already confirmed (400).
+    """
+    player = get_player_by_user_id(session, current_user.id)
+    match = get_match_by_id(session, id)
+
+    # Validate participation
+    validate_match_participation(match, player.id)
+
+    # Cannot contest a confirmed match
+    if match.confirmed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Match already confirmed",
+        )
+
+    # Nothing to contest if no scores were submitted
+    if match.submitted_by_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No scores submitted yet",
+        )
+
+    room = session.get(FifotecaRoom, match.room_id)
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Room not found"
+        )
+
+    # Clear the submission atomically. A confirmed result must never be reset,
+    # so the WHERE clause re-checks the state the guards above only observed:
+    # if the opponent confirmed first, this matches no rows and we conflict
+    # instead of nulling out an already-counted score.
+    reset = session.exec(
+        update(FifotecaMatch)
+        .where(
+            col(FifotecaMatch.id) == match.id,
+            col(FifotecaMatch.confirmed).is_(False),
+            col(FifotecaMatch.submitted_by_id).is_not(None),
+        )
+        .values(player1_score=None, player2_score=None, submitted_by_id=None)
+    )
+
+    if reset.rowcount != 1:
+        session.rollback()
+        raise_score_state_conflict()
+
+    room.status = RoomStatus.MATCH_IN_PROGRESS
+
+    session.add(room)
+    session.commit()
+    session.refresh(match)
+
+    # Broadcast score contest to room
+    from app.ws import manager
+
+    await manager.broadcast(
+        room.code,
+        {
+            "type": "score_contested",
+            "payload": {
+                "match_id": str(match.id),
+                "contested_by": str(player.id),
+            },
+        },
+    )
+
     return FifotecaMatchPublic.model_validate(match)
 
 
@@ -233,6 +357,27 @@ async def confirm_match_result(
             detail="You cannot confirm your own score submission",
         )
 
+    # Claim the confirmation atomically and before touching any stats. The
+    # guards above only observed the state; the WHERE clause re-checks it, so a
+    # submission the opponent contested in the meantime cannot be confirmed and
+    # a double confirm cannot double-count wins into the player totals.
+    claim = session.exec(
+        update(FifotecaMatch)
+        .where(
+            col(FifotecaMatch.id) == match.id,
+            col(FifotecaMatch.confirmed).is_(False),
+            col(FifotecaMatch.submitted_by_id).is_not(None),
+        )
+        .values(confirmed=True)
+    )
+
+    if claim.rowcount != 1:
+        session.rollback()
+        raise_score_state_conflict()
+
+    # Re-read the claimed row so the stats below use the current scores
+    session.refresh(match)
+
     # Determine outcome
     winner_id = None
     if match.player1_score is not None and match.player2_score is not None:
@@ -287,9 +432,6 @@ async def confirm_match_result(
             if weaker_player:
                 weaker_player.has_protection = True
                 session.add(weaker_player)
-
-    # Mark match confirmed
-    match.confirmed = True
 
     # Update room status
     room = session.get(FifotecaRoom, match.room_id)
@@ -373,7 +515,7 @@ def list_matches(
             FifotecaMatch.player2_id == player.id,
         )
     )
-    statement = statement.order_by(FifotecaMatch.created_at.desc())  # type: ignore[attr-defined]
+    statement = statement.order_by(col(FifotecaMatch.created_at).desc())
 
     matches = session.exec(statement).all()
 
@@ -434,13 +576,19 @@ def list_matches(
         opponent_team = teams_map.get(opponent_team_id)
         opponent_team_name = opponent_team.name if opponent_team else "Unknown team"
 
-        # Determine result
-        result = "draw"
-        if my_score is not None and opponent_score is not None:
+        # Determine result. Only confirmed matches with scores contribute to
+        # W/L/D so the analytics stay consistent with the persisted player
+        # stats, which are only updated on confirmation. Unconfirmed
+        # submissions — and any confirmed row whose scores are missing, which
+        # would mean a lost score update — show as pending, never as a draw.
+        result = "pending"
+        if match.confirmed and my_score is not None and opponent_score is not None:
             if my_score > opponent_score:
                 result = "win"
             elif my_score < opponent_score:
                 result = "loss"
+            else:
+                result = "draw"
 
         history_rows.append(
             FifotecaMatchHistoryPublic(
@@ -454,7 +602,9 @@ def list_matches(
                 my_team_name=my_team_name,
                 opponent_team_name=opponent_team_name,
                 my_team_rating=my_team.overall_rating if my_team else 0,
-                opponent_team_rating=opponent_team.overall_rating if opponent_team else 0,
+                opponent_team_rating=opponent_team.overall_rating
+                if opponent_team
+                else 0,
                 my_score=my_score,
                 opponent_score=opponent_score,
                 result=result,

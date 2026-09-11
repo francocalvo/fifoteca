@@ -60,6 +60,12 @@ function ResultBadge({ result }: { result: string }) {
           D
         </Badge>
       )
+    case "pending":
+      return (
+        <Badge variant="secondary" className="text-xs">
+          Pending
+        </Badge>
+      )
     default:
       return <Badge variant="secondary">-</Badge>
   }

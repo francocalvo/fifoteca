@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 
@@ -85,6 +85,13 @@ function FifotecaHomePage() {
     }
   }
 
+  // Active rooms the player can resume
+  const { data: activeRooms } = useQuery({
+    queryKey: ["fifoteca", "my-active-rooms"],
+    queryFn: () => FifotecaService.listMyActiveRooms(),
+    refetchOnWindowFocus: true,
+  })
+
   const isPending = createRoomMutation.isPending || joinRoomMutation.isPending
 
   return (
@@ -96,6 +103,38 @@ function FifotecaHomePage() {
           Play FIFA with a friend using fair team selection
         </p>
       </div>
+
+      {/* Active rooms — resume an in-progress game */}
+      {activeRooms && activeRooms.length > 0 && (
+        <Card className="border-primary/40">
+          <CardHeader>
+            <CardTitle>Resume Game</CardTitle>
+            <CardDescription>You have rooms still in progress</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            {activeRooms.map((room) => (
+              <button
+                key={room.id}
+                type="button"
+                className="flex items-center justify-between rounded-lg border p-3 text-left hover:bg-muted transition-colors"
+                onClick={() =>
+                  navigate({
+                    to: "/fifoteca/lobby/$roomCode",
+                    params: { roomCode: room.code },
+                  })
+                }
+              >
+                <span className="font-mono text-lg font-bold tracking-widest">
+                  {room.code}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  Round {room.round_number} · {room.status.replace(/_/g, " ")}
+                </span>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Player Stats */}
       <Card>

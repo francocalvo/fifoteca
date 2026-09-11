@@ -1,10 +1,12 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session, delete, or_, select
 
 from app.core.config import settings
+from app.core.security import create_access_token
 from app.models import (
     FifaLeague,
     FifaTeam,
@@ -695,7 +697,7 @@ def test_create_room_returns_valid_code(
         expires_at = datetime.fromisoformat(
             content["expires_at"].replace("Z", "+00:00")
         )
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         assert expires_at > now
         assert expires_at <= now + timedelta(minutes=61)
 
@@ -834,13 +836,60 @@ def test_join_room_successfully(
         db.commit()
 
 
-def test_join_room_full_returns_409(
+THIRD_USER_EMAIL = "third-party@example.com"
+
+
+def _create_third_player_token(db: Session) -> tuple[User, FifotecaPlayer, str]:
+    """Create a third user (never a room participant) with a player profile.
+
+    Returns the user, their profile, and a JWT for authenticated requests.
+    """
+    from app import crud
+    from app.models import UserCreate
+
+    user = crud.get_user_by_email(session=db, email=THIRD_USER_EMAIL)
+    if not user:
+        user = crud.create_user(
+            session=db,
+            user_create=UserCreate(email=THIRD_USER_EMAIL, password="testpass123"),
+        )
+    player = FifotecaPlayer(user_id=user.id, display_name="Third Party")
+    db.add(player)
+    db.commit()
+    db.refresh(player)
+    return user, player, create_access_token(user.id, timedelta(minutes=30))
+
+
+def _delete_third_player(db: Session, player: FifotecaPlayer) -> None:
+    """Delete the user and profile created by _create_third_player_token."""
+    user = db.get(User, player.user_id)
+    db.delete(player)
+    if user:
+        db.delete(user)
+    db.commit()
+
+
+def _delete_room_and_players(
+    db: Session, room_id: uuid.UUID, *player_ids: uuid.UUID
+) -> None:
+    """Delete a room and the given player profiles (room first, then profiles)."""
+    room = db.get(FifotecaRoom, room_id)
+    if room:
+        db.delete(room)
+    for player_id in player_ids:
+        player = db.get(FifotecaPlayer, player_id)
+        if player:
+            db.delete(player)
+    db.commit()
+
+
+def test_join_room_full_participant_rejoins(
     client: TestClient,
     normal_user_token_headers: dict[str, str],
     superuser_token_headers: dict[str, str],
     db: Session,
 ) -> None:
-    """Test that joining a full room returns 409 Conflict."""
+    """Player2 can rejoin a full room to resume, even though it left WAITING."""
     # Create players
     response = client.post(
         f"{settings.API_V1_STR}/fifoteca/players/me",
@@ -876,14 +925,15 @@ def test_join_room_full_returns_409(
         assert response.status_code == 200
 
         try:
-            # Player2 tries to join again (should fail - room not in WAITING status)
+            # Player2 is already a participant of the now-full, non-WAITING room
             response = client.post(
                 f"{settings.API_V1_STR}/fifoteca/rooms/join/{room_code}",
                 headers=superuser_token_headers,
             )
-            assert response.status_code == 400
+            assert response.status_code == 200
             content = response.json()
-            assert "not accepting joins" in content["detail"]
+            assert content["status"] == "SPINNING_LEAGUES"
+            assert content["player2_id"] is not None
 
         finally:
             # Clean up room
@@ -917,13 +967,13 @@ def test_join_room_not_found(
     assert "Room not found" in content["detail"]
 
 
-def test_join_room_not_waiting_status(
+def test_join_room_nonwaiting_participant_rejoins(
     client: TestClient,
     normal_user_token_headers: dict[str, str],
     superuser_token_headers: dict[str, str],
     db: Session,
 ) -> None:
-    """Test that joining a room not in WAITING status returns error."""
+    """The host can rejoin once the room has left WAITING (resume flow)."""
     # Create players
     response = client.post(
         f"{settings.API_V1_STR}/fifoteca/players/me",
@@ -960,14 +1010,13 @@ def test_join_room_not_waiting_status(
         assert response.status_code == 200
 
         try:
-            # Third player tries to join (should fail - room not in WAITING)
+            # Player1 is a participant, so joining again is a rejoin
             response = client.post(
                 f"{settings.API_V1_STR}/fifoteca/rooms/join/{room_code}",
-                headers=superuser_token_headers,
+                headers=normal_user_token_headers,
             )
-            assert response.status_code == 400
-            content = response.json()
-            assert "not accepting joins" in content["detail"]
+            assert response.status_code == 200
+            assert response.json()["status"] == "SPINNING_LEAGUES"
 
         finally:
             # Clean up room
@@ -981,10 +1030,129 @@ def test_join_room_not_waiting_status(
         db.commit()
 
 
-def test_join_room_self_join_blocked(
+def test_join_room_third_user_rejected(
+    client: TestClient,
+    normal_user_token_headers: dict[str, str],
+    superuser_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    """A third user cannot join a room that already has two participants."""
+    response = client.post(
+        f"{settings.API_V1_STR}/fifoteca/players/me",
+        headers=normal_user_token_headers,
+    )
+    assert response.status_code == 200
+    player1_id = uuid.UUID(response.json()["id"])
+
+    response = client.post(
+        f"{settings.API_V1_STR}/fifoteca/players/me",
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 200
+    player2_id = uuid.UUID(response.json()["id"])
+
+    _, third_player, third_token = _create_third_player_token(db)
+
+    try:
+        # Host creates the room, then the second player joins (room leaves WAITING)
+        response = client.post(
+            f"{settings.API_V1_STR}/fifoteca/rooms",
+            headers=normal_user_token_headers,
+        )
+        assert response.status_code == 200
+        room_data = response.json()
+        room_code = room_data["code"]
+        room_id = uuid.UUID(room_data["id"])
+
+        try:
+            response = client.post(
+                f"{settings.API_V1_STR}/fifoteca/rooms/join/{room_code}",
+                headers=superuser_token_headers,
+            )
+            assert response.status_code == 200
+            assert response.json()["status"] == "SPINNING_LEAGUES"
+
+            # Third user is not a participant and the room is no longer WAITING
+            response = client.post(
+                f"{settings.API_V1_STR}/fifoteca/rooms/join/{room_code}",
+                headers={"Authorization": f"Bearer {third_token}"},
+            )
+            assert response.status_code == 400
+            assert "not accepting joins" in response.json()["detail"]
+
+            # A rejected join leaves the room untouched
+            room = db.get(FifotecaRoom, room_id)
+            assert room is not None
+            db.refresh(room)
+            assert room.status == RoomStatus.SPINNING_LEAGUES
+            assert room.player2_id == player2_id
+
+        finally:
+            _delete_room_and_players(db, room_id)
+
+    finally:
+        _delete_third_player(db, third_player)
+        _delete_room_and_players(db, room_id, player1_id, player2_id)
+
+
+def test_join_room_full_third_user_rejected(
+    client: TestClient,
+    normal_user_token_headers: dict[str, str],
+    superuser_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    """A third user gets 409 when the room is WAITING but already full."""
+    response = client.post(
+        f"{settings.API_V1_STR}/fifoteca/players/me",
+        headers=normal_user_token_headers,
+    )
+    assert response.status_code == 200
+    player1_id = uuid.UUID(response.json()["id"])
+
+    response = client.post(
+        f"{settings.API_V1_STR}/fifoteca/players/me",
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 200
+    player2_id = uuid.UUID(response.json()["id"])
+
+    _, third_player, third_token = _create_third_player_token(db)
+
+    try:
+        # Build the full-but-WAITING room directly: the join flow flips the
+        # status atomically, so the API can never produce this state itself.
+        room = FifotecaRoom(
+            code="FULLR1",
+            ruleset="homebrew",
+            status=RoomStatus.WAITING,
+            player1_id=player1_id,
+            player2_id=player2_id,
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
+        )
+        db.add(room)
+        db.commit()
+        room_id = room.id
+
+        try:
+            response = client.post(
+                f"{settings.API_V1_STR}/fifoteca/rooms/join/FULLR1",
+                headers={"Authorization": f"Bearer {third_token}"},
+            )
+            assert response.status_code == 409
+            assert "already full" in response.json()["detail"]
+
+        finally:
+            _delete_room_and_players(db, room_id)
+
+    finally:
+        _delete_third_player(db, third_player)
+        _delete_room_and_players(db, room_id, player1_id, player2_id)
+
+
+def test_join_room_own_room_rejoins(
     client: TestClient, normal_user_token_headers: dict[str, str], db: Session
 ) -> None:
-    """Test that player cannot join their own room."""
+    """Test that the host rejoining their own room succeeds (resume flow)."""
     # Create player profile
     response = client.post(
         f"{settings.API_V1_STR}/fifoteca/players/me",
@@ -1006,14 +1174,16 @@ def test_join_room_self_join_blocked(
         room_id = uuid.UUID(room_data["id"])
 
         try:
-            # Try to join own room
+            # Join own room — allowed as a rejoin (room stays WAITING, unchanged)
             response = client.post(
                 f"{settings.API_V1_STR}/fifoteca/rooms/join/{room_code}",
                 headers=normal_user_token_headers,
             )
-            assert response.status_code == 400
+            assert response.status_code == 200
             content = response.json()
-            assert "Cannot join your own room" in content["detail"]
+            assert content["code"] == room_code
+            assert content["status"] == "WAITING"
+            assert content["player2_id"] is None
 
         finally:
             # Clean up room
@@ -1171,7 +1341,7 @@ def test_get_room_expired(
             ruleset="homebrew",
             status=RoomStatus.WAITING,
             player1_id=player_id,
-            expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+            expires_at=datetime.now(UTC) - timedelta(minutes=1),
         )
         db.add(room)
         db.commit()
@@ -1241,7 +1411,7 @@ def test_join_room_expired_returns_410(
             ruleset="homebrew",
             status=RoomStatus.WAITING,
             player1_id=player1_id,
-            expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+            expires_at=datetime.now(UTC) - timedelta(minutes=1),
         )
         db.add(room)
         db.commit()
@@ -1403,6 +1573,7 @@ def test_submit_match_score_success(
     from app.models import UserCreate
 
     user1 = crud.get_user_by_email(session=db, email=settings.EMAIL_TEST_USER)
+    assert user1 is not None
 
     # Create a second user for player2
     user2_email = "player2@example.com"
@@ -1466,7 +1637,7 @@ def test_submit_match_score_success(
         current_turn_player_id=player1.id,
         status=RoomStatus.MATCH_IN_PROGRESS,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room)
     db.flush()
@@ -1610,7 +1781,7 @@ def test_submit_match_score_non_participant_forbidden(
         current_turn_player_id=player1.id,
         status=RoomStatus.MATCH_IN_PROGRESS,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room)
     db.flush()
@@ -1730,7 +1901,7 @@ def test_submit_match_score_already_submitted(
         current_turn_player_id=player1.id,
         status=RoomStatus.MATCH_IN_PROGRESS,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room)
     db.flush()
@@ -1862,7 +2033,7 @@ def test_confirm_match_submitting_player_forbidden(
         current_turn_player_id=player1.id,
         status=RoomStatus.SCORE_SUBMITTED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room)
     db.flush()
@@ -1992,7 +2163,7 @@ def test_confirm_match_success(
         current_turn_player_id=player1.id,
         status=RoomStatus.SCORE_SUBMITTED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room)
     db.flush()
@@ -2140,7 +2311,7 @@ def test_confirm_match_draw_updates_stats(
         current_turn_player_id=player1.id,
         status=RoomStatus.SCORE_SUBMITTED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room)
     db.flush()
@@ -2298,7 +2469,7 @@ def test_list_matches_returns_player_matches(
         current_turn_player_id=player1.id,
         status=RoomStatus.COMPLETED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room1)
     db.flush()
@@ -2325,7 +2496,7 @@ def test_list_matches_returns_player_matches(
         current_turn_player_id=player2.id,
         status=RoomStatus.COMPLETED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room2)
     db.flush()
@@ -2471,7 +2642,7 @@ def test_list_matches_enriched_result_calculation(
         current_turn_player_id=player1.id,
         status=RoomStatus.COMPLETED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room1)
     db.flush()
@@ -2500,7 +2671,7 @@ def test_list_matches_enriched_result_calculation(
         current_turn_player_id=player1.id,
         status=RoomStatus.COMPLETED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room2)
     db.flush()
@@ -2529,7 +2700,7 @@ def test_list_matches_enriched_result_calculation(
         current_turn_player_id=player1.id,
         status=RoomStatus.COMPLETED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room3)
     db.flush()
@@ -2682,7 +2853,7 @@ def test_list_matches_sorted_newest_first(
         current_turn_player_id=player1.id,
         status=RoomStatus.COMPLETED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room1)
     db.flush()
@@ -2709,7 +2880,7 @@ def test_list_matches_sorted_newest_first(
         current_turn_player_id=player1.id,
         status=RoomStatus.COMPLETED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room2)
     db.flush()
@@ -2736,7 +2907,7 @@ def test_list_matches_sorted_newest_first(
         current_turn_player_id=player1.id,
         status=RoomStatus.COMPLETED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room3)
     db.flush()
@@ -2872,7 +3043,7 @@ def test_get_match_participant_allowed(
         current_turn_player_id=player1.id,
         status=RoomStatus.COMPLETED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room)
     db.flush()
@@ -3020,7 +3191,7 @@ def test_get_match_outsider_forbidden(
         current_turn_player_id=player1.id,
         status=RoomStatus.COMPLETED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room)
     db.flush()
@@ -3100,14 +3271,16 @@ def test_list_players_returns_all_players(
     user1 = crud.get_user_by_email(session=db, email=user1_email)
     if not user1:
         user1 = crud.create_user(
-            session=db, user_create=UserCreate(email=user1_email, password="testpass123")
+            session=db,
+            user_create=UserCreate(email=user1_email, password="testpass123"),
         )
 
     user2_email = "list_players_user2@example.com"
     user2 = crud.get_user_by_email(session=db, email=user2_email)
     if not user2:
         user2 = crud.create_user(
-            session=db, user_create=UserCreate(email=user2_email, password="testpass123")
+            session=db,
+            user_create=UserCreate(email=user2_email, password="testpass123"),
         )
     db.commit()
 
@@ -3181,14 +3354,16 @@ def test_list_matches_analytics_fields(
     user1 = crud.get_user_by_email(session=db, email=user1_email)
     if not user1:
         user1 = crud.create_user(
-            session=db, user_create=UserCreate(email=user1_email, password="testpass123")
+            session=db,
+            user_create=UserCreate(email=user1_email, password="testpass123"),
         )
 
     user2_email = "analytics_fields_user2@example.com"
     user2 = crud.get_user_by_email(session=db, email=user2_email)
     if not user2:
         user2 = crud.create_user(
-            session=db, user_create=UserCreate(email=user2_email, password="testpass123")
+            session=db,
+            user_create=UserCreate(email=user2_email, password="testpass123"),
         )
     db.commit()
 
@@ -3244,7 +3419,7 @@ def test_list_matches_analytics_fields(
         current_turn_player_id=player1.id,
         status=RoomStatus.COMPLETED,
         round_number=1,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room)
     db.flush()
@@ -3281,9 +3456,7 @@ def test_list_matches_analytics_fields(
     assert content["count"] >= 1
 
     # Find our specific match
-    match_data = next(
-        (m for m in content["data"] if m["id"] == str(match.id)), None
-    )
+    match_data = next((m for m in content["data"] if m["id"] == str(match.id)), None)
     assert match_data is not None
 
     # Verify analytics-specific fields
@@ -3307,3 +3480,294 @@ def test_list_matches_analytics_fields(
     db.exec(delete(FifotecaPlayer).where(FifotecaPlayer.id == player1.id))
     db.exec(delete(FifotecaPlayer).where(FifotecaPlayer.id == player2.id))
     db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Match contest / rejoin / pending-result tests
+# ---------------------------------------------------------------------------
+
+
+def _create_match_setup(
+    db: Session,
+    *,
+    room_code: str,
+    league_name: str,
+    team1_rating: int = 240,
+    team2_rating: int = 240,
+) -> dict[str, Any]:
+    """Create players/room/match fixture for match endpoint tests.
+
+    user1 (EMAIL_TEST_USER) is player1 of the match; "player2@example.com"
+    is player2. Returns the created objects in a dict for assertions and
+    cleanup.
+    """
+    from app import crud
+    from app.models import UserCreate
+
+    user1 = crud.get_user_by_email(session=db, email=settings.EMAIL_TEST_USER)
+    assert user1 is not None
+
+    user2_email = "player2@example.com"
+    user2 = crud.get_user_by_email(session=db, email=user2_email)
+    if not user2:
+        user2_in = UserCreate(email=user2_email, password="testpass123")
+        user2 = crud.create_user(session=db, user_create=user2_in)
+
+    db.commit()
+
+    player1 = FifotecaPlayer(
+        user_id=user1.id,
+        display_name="Player1",
+        total_wins=0,
+        total_losses=0,
+        total_draws=0,
+        has_protection=False,
+    )
+    player2 = FifotecaPlayer(
+        user_id=user2.id,
+        display_name="Player2",
+        total_wins=0,
+        total_losses=0,
+        total_draws=0,
+        has_protection=False,
+    )
+    db.add(player1)
+    db.add(player2)
+    db.flush()
+
+    league = FifaLeague(name=league_name, country="Test")
+    db.add(league)
+    db.flush()
+
+    team1 = FifaTeam(
+        name=f"Team1-{league_name}",
+        league_id=league.id,
+        attack_rating=80,
+        midfield_rating=80,
+        defense_rating=80,
+        overall_rating=team1_rating,
+    )
+    team2 = FifaTeam(
+        name=f"Team2-{league_name}",
+        league_id=league.id,
+        attack_rating=80,
+        midfield_rating=80,
+        defense_rating=80,
+        overall_rating=team2_rating,
+    )
+    db.add(team1)
+    db.add(team2)
+    db.flush()
+
+    room = FifotecaRoom(
+        code=room_code,
+        ruleset="standard",
+        player1_id=player1.id,
+        player2_id=player2.id,
+        current_turn_player_id=player1.id,
+        status=RoomStatus.MATCH_IN_PROGRESS,
+        round_number=1,
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
+    )
+    db.add(room)
+    db.flush()
+
+    match = FifotecaMatch(
+        room_id=room.id,
+        round_number=1,
+        player1_id=player1.id,
+        player2_id=player2.id,
+        player1_team_id=team1.id,
+        player2_team_id=team2.id,
+        rating_difference=abs(team1_rating - team2_rating),
+    )
+    db.add(match)
+    db.commit()
+
+    return {
+        "player1": player1,
+        "player2": player2,
+        "league": league,
+        "team1": team1,
+        "team2": team2,
+        "room": room,
+        "match": match,
+    }
+
+
+def _cleanup_match_setup(db: Session, setup: dict[str, Any]) -> None:
+    """Delete the fixture objects created by _create_match_setup."""
+    db.exec(delete(FifotecaMatch).where(FifotecaMatch.id == setup["match"].id))
+    db.exec(delete(FifotecaRoom).where(FifotecaRoom.id == setup["room"].id))
+    db.exec(delete(FifaTeam).where(FifaTeam.id == setup["team1"].id))
+    db.exec(delete(FifaTeam).where(FifaTeam.id == setup["team2"].id))
+    db.exec(delete(FifaLeague).where(FifaLeague.id == setup["league"].id))
+    db.exec(delete(FifotecaPlayer).where(FifotecaPlayer.id == setup["player1"].id))
+    db.exec(delete(FifotecaPlayer).where(FifotecaPlayer.id == setup["player2"].id))
+    db.commit()
+
+
+def test_contest_match_score_resets_submission(
+    client: TestClient,
+    normal_user_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    """Contesting a submitted score clears it and allows re-submission."""
+    setup = _create_match_setup(db, room_code="CONT1", league_name="Contest League")
+    match: FifotecaMatch = setup["match"]
+    room: FifotecaRoom = setup["room"]
+
+    try:
+        # Player1 (normal_user) submits scores
+        score_data = MatchScoreSubmit(player1_score=3, player2_score=1)
+        response = client.post(
+            f"{settings.API_V1_STR}/fifoteca/matches/{match.id}/score",
+            json=score_data.model_dump(),
+            headers=normal_user_token_headers,
+        )
+        assert response.status_code == 200
+
+        db.refresh(match)
+        assert match.submitted_by_id is not None
+
+        # Player1 contests their own submission (e.g. typo in the score)
+        response = client.post(
+            f"{settings.API_V1_STR}/fifoteca/matches/{match.id}/contest",
+            headers=normal_user_token_headers,
+        )
+        assert response.status_code == 200
+        content = response.json()
+        assert content["player1_score"] is None
+        assert content["player2_score"] is None
+
+        # Submission cleared on the match itself
+        db.refresh(match)
+        assert match.submitted_by_id is None
+
+        # Room is back to MATCH_IN_PROGRESS
+        db.refresh(room)
+        assert room.status == RoomStatus.MATCH_IN_PROGRESS
+
+        # Re-submission works after contest
+        response = client.post(
+            f"{settings.API_V1_STR}/fifoteca/matches/{match.id}/score",
+            json=MatchScoreSubmit(player1_score=2, player2_score=2).model_dump(),
+            headers=normal_user_token_headers,
+        )
+        assert response.status_code == 200
+
+        db.refresh(match)
+        assert match.player1_score == 2
+        assert match.player2_score == 2
+    finally:
+        _cleanup_match_setup(db, setup)
+
+
+def test_contest_match_score_rejected_when_confirmed(
+    client: TestClient,
+    normal_user_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    """Contesting a confirmed match is rejected."""
+    setup = _create_match_setup(db, room_code="CONT2", league_name="Contest League 2")
+    match: FifotecaMatch = setup["match"]
+
+    try:
+        match.confirmed = True
+        match.player1_score = 3
+        match.player2_score = 1
+        match.submitted_by_id = setup["player2"].id
+        db.add(match)
+        db.commit()
+
+        response = client.post(
+            f"{settings.API_V1_STR}/fifoteca/matches/{match.id}/contest",
+            headers=normal_user_token_headers,
+        )
+        assert response.status_code == 400
+        assert "confirmed" in response.json()["detail"].lower()
+    finally:
+        _cleanup_match_setup(db, setup)
+
+
+def test_list_matches_pending_result_for_unconfirmed(
+    client: TestClient,
+    normal_user_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    """Unconfirmed matches report result 'pending' so analytics stay consistent."""
+    setup = _create_match_setup(db, room_code="PEND1", league_name="Pending League")
+    match: FifotecaMatch = setup["match"]
+
+    try:
+        # Submit scores but do NOT confirm
+        response = client.post(
+            f"{settings.API_V1_STR}/fifoteca/matches/{match.id}/score",
+            json=MatchScoreSubmit(player1_score=3, player2_score=1).model_dump(),
+            headers=normal_user_token_headers,
+        )
+        assert response.status_code == 200
+
+        response = client.get(
+            f"{settings.API_V1_STR}/fifoteca/matches/",
+            headers=normal_user_token_headers,
+        )
+        assert response.status_code == 200
+        content = response.json()
+        match_data = next(
+            (m for m in content["data"] if m["id"] == str(match.id)), None
+        )
+        assert match_data is not None
+        # Scores exist but the match is unconfirmed → pending, not a win
+        assert match_data["confirmed"] is False
+        assert match_data["result"] == "pending"
+
+        # Player2 confirms → result becomes win (and stays consistent with stats)
+        login_response = client.post(
+            f"{settings.API_V1_STR}/login/access-token",
+            data={"username": "player2@example.com", "password": "testpass123"},
+        )
+        assert login_response.status_code == 200
+        player2_token = login_response.json()["access_token"]
+        response = client.post(
+            f"{settings.API_V1_STR}/fifoteca/matches/{match.id}/confirm",
+            headers={"Authorization": f"Bearer {player2_token}"},
+        )
+        assert response.status_code == 200
+
+        response = client.get(
+            f"{settings.API_V1_STR}/fifoteca/matches/",
+            headers=normal_user_token_headers,
+        )
+        match_data = next(
+            (m for m in response.json()["data"] if m["id"] == str(match.id)), None
+        )
+        assert match_data is not None
+        assert match_data["result"] == "win"
+    finally:
+        _cleanup_match_setup(db, setup)
+
+
+def test_join_room_allows_participant_rejoin(
+    client: TestClient,
+    normal_user_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    """An existing participant can rejoin their room in any non-expired status."""
+    setup = _create_match_setup(db, room_code="REJO1", league_name="Rejoin League")
+    room: FifotecaRoom = setup["room"]
+
+    try:
+        # Room is mid-match (MATCH_IN_PROGRESS) — joining must succeed for player1
+        response = client.post(
+            f"{settings.API_V1_STR}/fifoteca/rooms/join/{room.code}",
+            headers=normal_user_token_headers,
+        )
+        assert response.status_code == 200
+        content = response.json()
+        assert content["code"] == room.code
+        assert content["status"] == RoomStatus.MATCH_IN_PROGRESS
+        # Room state is untouched by the rejoin
+        assert content["round_number"] == room.round_number
+    finally:
+        _cleanup_match_setup(db, setup)

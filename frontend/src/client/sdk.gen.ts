@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { FifotecaReadLeaguesResponse, FifotecaReadLeagueTeamsData, FifotecaReadLeagueTeamsResponse, FifotecaSubmitMatchScoreData, FifotecaSubmitMatchScoreResponse, FifotecaConfirmMatchResultData, FifotecaConfirmMatchResultResponse, FifotecaListMatchesResponse, FifotecaGetMatchData, FifotecaGetMatchResponse, FifotecaListPlayersResponse, FifotecaGetPlayerProfileResponse, FifotecaCreateOrGetPlayerProfileResponse, FifotecaCreateRoomData, FifotecaCreateRoomResponse, FifotecaJoinRoomData, FifotecaJoinRoomResponse, FifotecaGetRoomData, FifotecaGetRoomResponse, FifotecaReadTeamsData, FifotecaReadTeamsResponse, FifotecaCreateManualMatchRequestData, FifotecaCreateManualMatchRequestResponse, FifotecaCreateEditRequestData, FifotecaCreateEditRequestResponse, FifotecaCreateDeleteRequestData, FifotecaCreateDeleteRequestResponse, FifotecaListManualMatchRequestsResponse, FifotecaAcceptManualMatchRequestData, FifotecaAcceptManualMatchRequestResponse, FifotecaDeclineManualMatchRequestData, FifotecaDeclineManualMatchRequestResponse, FifotecaCancelManualMatchRequestData, FifotecaCancelManualMatchRequestResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { FifotecaReadLeaguesResponse, FifotecaReadLeagueTeamsData, FifotecaReadLeagueTeamsResponse, FifotecaCreateManualMatchRequestData, FifotecaCreateManualMatchRequestResponse, FifotecaCreateEditRequestData, FifotecaCreateEditRequestResponse, FifotecaCreateDeleteRequestData, FifotecaCreateDeleteRequestResponse, FifotecaListManualMatchRequestsResponse, FifotecaAcceptManualMatchRequestData, FifotecaAcceptManualMatchRequestResponse, FifotecaDeclineManualMatchRequestData, FifotecaDeclineManualMatchRequestResponse, FifotecaCancelManualMatchRequestData, FifotecaCancelManualMatchRequestResponse, FifotecaSubmitMatchScoreData, FifotecaSubmitMatchScoreResponse, FifotecaContestMatchScoreData, FifotecaContestMatchScoreResponse, FifotecaConfirmMatchResultData, FifotecaConfirmMatchResultResponse, FifotecaListMatchesResponse, FifotecaGetMatchData, FifotecaGetMatchResponse, FifotecaListPlayersResponse, FifotecaGetPlayerProfileResponse, FifotecaCreateOrGetPlayerProfileResponse, FifotecaCreateRoomData, FifotecaCreateRoomResponse, FifotecaListMyActiveRoomsResponse, FifotecaJoinRoomData, FifotecaJoinRoomResponse, FifotecaGetRoomData, FifotecaGetRoomResponse, FifotecaReadTeamsData, FifotecaReadTeamsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class FifotecaService {
     /**
@@ -31,6 +31,144 @@ export class FifotecaService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/fifoteca/leagues/{id}/teams',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Manual Match Request
+     * Create a manual match request.
+     *
+     * Creates a request that must be accepted by the opponent.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ManualMatchRequestPublic Successful Response
+     * @throws ApiError
+     */
+    public static createManualMatchRequest(data: FifotecaCreateManualMatchRequestData): CancelablePromise<FifotecaCreateManualMatchRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/manual-matches/create',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Edit Request
+     * Create a request to edit an existing match's scores.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ManualMatchRequestPublic Successful Response
+     * @throws ApiError
+     */
+    public static createEditRequest(data: FifotecaCreateEditRequestData): CancelablePromise<FifotecaCreateEditRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/manual-matches/edit',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Delete Request
+     * Create a request to delete an existing match.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ManualMatchRequestPublic Successful Response
+     * @throws ApiError
+     */
+    public static createDeleteRequest(data: FifotecaCreateDeleteRequestData): CancelablePromise<FifotecaCreateDeleteRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/manual-matches/delete',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * List Manual Match Requests
+     * List pending manual match requests for the current player.
+     * @returns ManualMatchRequestsPublic Successful Response
+     * @throws ApiError
+     */
+    public static listManualMatchRequests(): CancelablePromise<FifotecaListManualMatchRequestsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/manual-matches'
+        });
+    }
+    
+    /**
+     * Accept Manual Match Request
+     * Accept a manual match request.
+     * @param data The data for the request.
+     * @param data.id
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static acceptManualMatchRequest(data: FifotecaAcceptManualMatchRequestData): CancelablePromise<FifotecaAcceptManualMatchRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/manual-matches/{id}/accept',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Decline Manual Match Request
+     * Decline a manual match request.
+     * @param data The data for the request.
+     * @param data.id
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static declineManualMatchRequest(data: FifotecaDeclineManualMatchRequestData): CancelablePromise<FifotecaDeclineManualMatchRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/manual-matches/{id}/decline',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Cancel Manual Match Request
+     * Cancel a pending manual match request (requester only).
+     * @param data The data for the request.
+     * @param data.id
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static cancelManualMatchRequest(data: FifotecaCancelManualMatchRequestData): CancelablePromise<FifotecaCancelManualMatchRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/fifoteca/manual-matches/{id}',
             path: {
                 id: data.id
             },
@@ -76,6 +214,44 @@ export class FifotecaService {
             },
             body: data.requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Contest Match Score
+     * Contest a submitted score so it can be corrected.
+     *
+     * Any participant can contest a submitted (but not yet confirmed) score.
+     * This clears the submitted scores and puts the match back into
+     * MATCH_IN_PROGRESS so either player can re-enter the correct result.
+     *
+     * Args:
+     * id: The match ID.
+     * current_user: The authenticated user.
+     * session: Database session.
+     *
+     * Returns:
+     * The reset match.
+     *
+     * Raises:
+     * HTTPException: If player not participant (403).
+     * HTTPException: If no scores submitted (400).
+     * HTTPException: If match already confirmed (400).
+     * @param data The data for the request.
+     * @param data.id
+     * @returns FifotecaMatchPublic Successful Response
+     * @throws ApiError
+     */
+    public static contestMatchScore(data: FifotecaContestMatchScoreData): CancelablePromise<FifotecaContestMatchScoreResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/matches/{id}/contest',
+            path: {
+                id: data.id
+            },
             errors: {
                 422: 'Validation Error'
             }
@@ -181,7 +357,7 @@ export class FifotecaService {
     
     /**
      * List Players
-     * List all registered Fifoteca players.
+     * List all registered Fifoteca players (excluding the requesting user).
      * @returns FifotecaPlayerPublic Successful Response
      * @throws ApiError
      */
@@ -246,6 +422,22 @@ export class FifotecaService {
             errors: {
                 422: 'Validation Error'
             }
+        });
+    }
+    
+    /**
+     * List My Active Rooms
+     * List the current player's active (resumable) rooms.
+     *
+     * Returns non-expired rooms the player participates in that are not
+     * COMPLETED, so the frontend can offer a "resume game" entry point.
+     * @returns FifotecaRoomPublic Successful Response
+     * @throws ApiError
+     */
+    public static listMyActiveRooms(): CancelablePromise<FifotecaListMyActiveRoomsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/rooms/my-active'
         });
     }
     
@@ -316,142 +508,6 @@ export class FifotecaService {
                 league_id: data.leagueId,
                 min_rating: data.minRating,
                 max_rating: data.maxRating
-            },
-            errors: {
-                422: 'Validation Error'
-            }
-        });
-    }
-
-    /**
-     * Create Manual Match Request
-     * Create a request to add a manual match (requires opponent approval).
-     * @param data The data for the request.
-     * @param data.requestBody
-     * @returns ManualMatchRequestPublic Successful Response
-     * @throws ApiError
-     */
-    public static createManualMatchRequest(data: FifotecaCreateManualMatchRequestData): CancelablePromise<FifotecaCreateManualMatchRequestResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/fifoteca/manual-matches/create',
-            body: data.requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: 'Validation Error'
-            }
-        });
-    }
-
-    /**
-     * Create Edit Request
-     * Create a request to edit an existing match's scores (requires opponent approval).
-     * @param data The data for the request.
-     * @param data.requestBody
-     * @returns ManualMatchRequestPublic Successful Response
-     * @throws ApiError
-     */
-    public static createEditRequest(data: FifotecaCreateEditRequestData): CancelablePromise<FifotecaCreateEditRequestResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/fifoteca/manual-matches/edit',
-            body: data.requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: 'Validation Error'
-            }
-        });
-    }
-
-    /**
-     * Create Delete Request
-     * Create a request to delete an existing match (requires opponent approval).
-     * @param data The data for the request.
-     * @param data.requestBody
-     * @returns ManualMatchRequestPublic Successful Response
-     * @throws ApiError
-     */
-    public static createDeleteRequest(data: FifotecaCreateDeleteRequestData): CancelablePromise<FifotecaCreateDeleteRequestResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/fifoteca/manual-matches/delete',
-            body: data.requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: 'Validation Error'
-            }
-        });
-    }
-
-    /**
-     * List Manual Match Requests
-     * List pending manual match requests for the current player.
-     * @returns ManualMatchRequestsPublic Successful Response
-     * @throws ApiError
-     */
-    public static listManualMatchRequests(): CancelablePromise<FifotecaListManualMatchRequestsResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/v1/fifoteca/manual-matches'
-        });
-    }
-
-    /**
-     * Accept Manual Match Request
-     * Accept a pending manual match request.
-     * @param data The data for the request.
-     * @param data.id
-     * @returns Message Successful Response
-     * @throws ApiError
-     */
-    public static acceptManualMatchRequest(data: FifotecaAcceptManualMatchRequestData): CancelablePromise<FifotecaAcceptManualMatchRequestResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/fifoteca/manual-matches/{id}/accept',
-            path: {
-                id: data.id
-            },
-            errors: {
-                422: 'Validation Error'
-            }
-        });
-    }
-
-    /**
-     * Decline Manual Match Request
-     * Decline a pending manual match request.
-     * @param data The data for the request.
-     * @param data.id
-     * @returns Message Successful Response
-     * @throws ApiError
-     */
-    public static declineManualMatchRequest(data: FifotecaDeclineManualMatchRequestData): CancelablePromise<FifotecaDeclineManualMatchRequestResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/fifoteca/manual-matches/{id}/decline',
-            path: {
-                id: data.id
-            },
-            errors: {
-                422: 'Validation Error'
-            }
-        });
-    }
-
-    /**
-     * Cancel Manual Match Request
-     * Cancel a pending manual match request (requester only).
-     * @param data The data for the request.
-     * @param data.id
-     * @returns Message Successful Response
-     * @throws ApiError
-     */
-    public static cancelManualMatchRequest(data: FifotecaCancelManualMatchRequestData): CancelablePromise<FifotecaCancelManualMatchRequestResponse> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/api/v1/fifoteca/manual-matches/{id}',
-            path: {
-                id: data.id
             },
             errors: {
                 422: 'Validation Error'
@@ -704,6 +760,146 @@ export class LoginService {
     }
 }
 
+export class ManualMatchesService {
+    /**
+     * Create Manual Match Request
+     * Create a manual match request.
+     *
+     * Creates a request that must be accepted by the opponent.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ManualMatchRequestPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaCreateManualMatchRequest(data: FifotecaCreateManualMatchRequestData): CancelablePromise<FifotecaCreateManualMatchRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/manual-matches/create',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Edit Request
+     * Create a request to edit an existing match's scores.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ManualMatchRequestPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaCreateEditRequest(data: FifotecaCreateEditRequestData): CancelablePromise<FifotecaCreateEditRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/manual-matches/edit',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Delete Request
+     * Create a request to delete an existing match.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ManualMatchRequestPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaCreateDeleteRequest(data: FifotecaCreateDeleteRequestData): CancelablePromise<FifotecaCreateDeleteRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/manual-matches/delete',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * List Manual Match Requests
+     * List pending manual match requests for the current player.
+     * @returns ManualMatchRequestsPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaListManualMatchRequests(): CancelablePromise<FifotecaListManualMatchRequestsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/manual-matches'
+        });
+    }
+    
+    /**
+     * Accept Manual Match Request
+     * Accept a manual match request.
+     * @param data The data for the request.
+     * @param data.id
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaAcceptManualMatchRequest(data: FifotecaAcceptManualMatchRequestData): CancelablePromise<FifotecaAcceptManualMatchRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/manual-matches/{id}/accept',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Decline Manual Match Request
+     * Decline a manual match request.
+     * @param data The data for the request.
+     * @param data.id
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaDeclineManualMatchRequest(data: FifotecaDeclineManualMatchRequestData): CancelablePromise<FifotecaDeclineManualMatchRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/manual-matches/{id}/decline',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Cancel Manual Match Request
+     * Cancel a pending manual match request (requester only).
+     * @param data The data for the request.
+     * @param data.id
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaCancelManualMatchRequest(data: FifotecaCancelManualMatchRequestData): CancelablePromise<FifotecaCancelManualMatchRequestResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/fifoteca/manual-matches/{id}',
+            path: {
+                id: data.id
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
 export class MatchesService {
     /**
      * Submit Match Score
@@ -741,6 +937,44 @@ export class MatchesService {
             },
             body: data.requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Contest Match Score
+     * Contest a submitted score so it can be corrected.
+     *
+     * Any participant can contest a submitted (but not yet confirmed) score.
+     * This clears the submitted scores and puts the match back into
+     * MATCH_IN_PROGRESS so either player can re-enter the correct result.
+     *
+     * Args:
+     * id: The match ID.
+     * current_user: The authenticated user.
+     * session: Database session.
+     *
+     * Returns:
+     * The reset match.
+     *
+     * Raises:
+     * HTTPException: If player not participant (403).
+     * HTTPException: If no scores submitted (400).
+     * HTTPException: If match already confirmed (400).
+     * @param data The data for the request.
+     * @param data.id
+     * @returns FifotecaMatchPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaContestMatchScore(data: FifotecaContestMatchScoreData): CancelablePromise<FifotecaContestMatchScoreResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fifoteca/matches/{id}/contest',
+            path: {
+                id: data.id
+            },
             errors: {
                 422: 'Validation Error'
             }
@@ -848,7 +1082,7 @@ export class MatchesService {
 export class PlayersService {
     /**
      * List Players
-     * List all registered Fifoteca players.
+     * List all registered Fifoteca players (excluding the requesting user).
      * @returns FifotecaPlayerPublic Successful Response
      * @throws ApiError
      */
@@ -893,28 +1127,6 @@ export class PlayersService {
     }
 }
 
-export class PrivateService {
-    /**
-     * Create User
-     * Create a new user.
-     * @param data The data for the request.
-     * @param data.requestBody
-     * @returns UserPublic Successful Response
-     * @throws ApiError
-     */
-    public static createUser(data: PrivateCreateUserData): CancelablePromise<PrivateCreateUserResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/private/users/',
-            body: data.requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: 'Validation Error'
-            }
-        });
-    }
-}
-
 export class RoomsService {
     /**
      * Create Room
@@ -937,6 +1149,22 @@ export class RoomsService {
             errors: {
                 422: 'Validation Error'
             }
+        });
+    }
+    
+    /**
+     * List My Active Rooms
+     * List the current player's active (resumable) rooms.
+     *
+     * Returns non-expired rooms the player participates in that are not
+     * COMPLETED, so the frontend can offer a "resume game" entry point.
+     * @returns FifotecaRoomPublic Successful Response
+     * @throws ApiError
+     */
+    public static fifotecaListMyActiveRooms(): CancelablePromise<FifotecaListMyActiveRoomsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fifoteca/rooms/my-active'
         });
     }
     

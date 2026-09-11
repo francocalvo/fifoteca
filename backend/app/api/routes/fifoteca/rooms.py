@@ -1,20 +1,18 @@
 """Room management endpoints for Fifoteca."""
 
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, status
-from sqlmodel import and_, col, select
+from sqlmodel import and_, col, or_, select
 
 from app.api.deps import CurrentUser, SessionDep
 from app.crud import get_player_by_user_id
 from app.models import (
-    FifotecaPlayer,
     FifotecaPlayerState,
     FifotecaRoom,
     FifotecaRoomPublic,
     FifotecaRoomWithStatesPublic,
-    PlayerSpinPhase,
     RoomStatus,
 )
 from app.services.game_service import GameService
@@ -36,7 +34,7 @@ def check_room_expiry(room: FifotecaRoom, session: SessionDep) -> None:
     Raises:
         HTTPException: 410 Gone if room has expired.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if room.expires_at < now:
         # Mark as completed if not already
         if room.status != RoomStatus.COMPLETED:
@@ -83,7 +81,7 @@ def create_room(
     while True:
         code = generate_room_code()
         # Check if code exists among active (non-expired) rooms
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         statement = select(FifotecaRoom).where(
             and_(FifotecaRoom.code == code, col(FifotecaRoom.expires_at) > now)
         )
@@ -98,13 +96,45 @@ def create_room(
         ruleset=ruleset,
         status=RoomStatus.WAITING,
         player1_id=player.id,
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=60),
+        expires_at=datetime.now(UTC) + timedelta(minutes=60),
     )
     session.add(room)
     session.commit()
     session.refresh(room)
 
     return room
+
+
+@router.get("/my-active", response_model=list[FifotecaRoomPublic])
+def list_my_active_rooms(
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> list[FifotecaRoom]:
+    """List the current player's active (resumable) rooms.
+
+    Returns non-expired rooms the player participates in that are not
+    COMPLETED, so the frontend can offer a "resume game" entry point.
+    """
+    player = get_player_by_user_id(session=session, user_id=current_user.id)
+    if not player:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Player profile not found. Create a profile first.",
+        )
+
+    now = datetime.now(UTC)
+    statement = select(FifotecaRoom).where(
+        and_(
+            col(FifotecaRoom.expires_at) > now,
+            FifotecaRoom.status != RoomStatus.COMPLETED,
+            or_(
+                FifotecaRoom.player1_id == player.id,
+                FifotecaRoom.player2_id == player.id,
+            ),
+        )
+    )
+    statement = statement.order_by(col(FifotecaRoom.created_at).desc())
+    return list(session.exec(statement).all())
 
 
 @router.post("/join/{code}", response_model=FifotecaRoomPublic)
@@ -139,6 +169,12 @@ def join_room(
 
     # Check if room has expired (returns 410 if expired)
     check_room_expiry(room, session)
+
+    # Rejoin: if this player is already a participant, let them back in
+    # regardless of the room status (e.g. they left mid-game and want to
+    # resume, or their app restarted).
+    if room.player1_id == player.id or room.player2_id == player.id:
+        return room
 
     # Check for self-join (player1 trying to join their own room)
     if room.player1_id == player.id:

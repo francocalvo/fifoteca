@@ -17,3 +17,9 @@ monitor.sh
 llm
 .env
 data/*
+
+# macOS
+.DS_Store
+
+# local test scratch env
+backend/.env.test-db*

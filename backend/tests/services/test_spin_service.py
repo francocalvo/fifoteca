@@ -1,6 +1,6 @@
 """Tests for SpinService core game logic."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlmodel import Session
@@ -122,7 +122,7 @@ def room(db: Session, player: FifotecaPlayer) -> FifotecaRoom:
         code="ABC123",
         status=RoomStatus.SPINNING_LEAGUES,
         player1_id=player.id,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
     db.add(room)
     db.commit()
@@ -739,11 +739,11 @@ def test_parity_spin_rejects_when_no_teams_in_range(
     db.add(team)
     db.commit()
 
-    # Use an extreme opponent rating that no seed/test team can match (±30 = 970-1030)
+    # Use an extreme opponent rating that no seed/test team can match (±29 = 971-1029)
     opponent_rating = 1000
 
     # Should raise SpecialSpinError
-    with pytest.raises(SpecialSpinError, match="No teams found within ±30 rating"):
+    with pytest.raises(SpecialSpinError, match="No teams found within ±29 rating"):
         SpinService.execute_parity_spin(db, player_state, opponent_rating)
 
 
@@ -759,3 +759,118 @@ def test_parity_spin_rejects_when_opponent_rating_unavailable(
         match="Cannot execute parity spin: opponent rating unavailable",
     ):
         SpinService.execute_parity_spin(db, player_state, None)
+
+
+# --- Round-wide uniqueness across players (no repeats within a match) ---
+
+
+@pytest.fixture
+def player_state2(
+    db: Session, room: FifotecaRoom, player2: FifotecaPlayer
+) -> FifotecaPlayerState:
+    """Create a second player state in the same room/round."""
+    state = FifotecaPlayerState(
+        room_id=room.id,
+        player_id=player2.id,
+        round_number=1,
+        phase=PlayerSpinPhase.LEAGUE_SPINNING,
+        league_spins_remaining=3,
+        team_spins_remaining=3,
+    )
+    db.add(state)
+    db.commit()
+    db.refresh(state)
+    return state
+
+
+def test_spin_league_excludes_opponent_league_in_same_round(
+    db: Session,
+    league: FifaLeague,
+    player_state: FifotecaPlayerState,
+    player_state2: FifotecaPlayerState,
+) -> None:
+    """The same league must not be drawn by both players in one match."""
+    # Player 2 already drew (and locked) the test league
+    player_state2.current_league_id = league.id
+    player_state2.used_league_ids = [str(league.id)]
+    player_state2.league_locked = True
+    db.add(player_state2)
+    db.commit()
+
+    # Player 1 must not draw the same league
+    result = SpinService.spin_league(db, player_state)
+    assert result["league"].id != league.id
+
+
+def test_spin_league_unique_across_players_with_two_leagues(
+    db: Session,
+    player_state: FifotecaPlayerState,
+    player_state2: FifotecaPlayerState,
+) -> None:
+    """With two leagues, the second player draws the other one."""
+    result1 = SpinService.spin_league(db, player_state)
+    result2 = SpinService.spin_league(db, player_state2)
+
+    assert result1["league"].id != result2["league"].id
+
+
+def test_spin_team_excludes_opponent_team_in_same_round(
+    db: Session,
+    league: FifaLeague,
+    team1: FifaTeam,
+    team2: FifaTeam,
+    player_state: FifotecaPlayerState,
+    player_state2: FifotecaPlayerState,
+) -> None:
+    """The same team must not be drawn by both players in one match."""
+    for state in (player_state, player_state2):
+        state.current_league_id = league.id
+        state.league_locked = True
+        state.phase = PlayerSpinPhase.TEAM_SPINNING
+        db.add(state)
+    db.commit()
+
+    # Player 2 already drew (and locked) team1
+    player_state2.current_team_id = team1.id
+    player_state2.used_team_ids = [str(team1.id)]
+    player_state2.team_locked = True
+    db.add(player_state2)
+    db.commit()
+
+    result = SpinService.spin_team(db, player_state)
+    assert result["team"].id == team2.id
+
+
+def test_superspin_excludes_teams_used_in_round(
+    db: Session,
+    league: FifaLeague,
+    team1: FifaTeam,
+    team2: FifaTeam,
+    player_state: FifotecaPlayerState,
+    player_state2: FifotecaPlayerState,
+) -> None:
+    """Superspin must not land on a team already used in the same match."""
+    player_state.current_league_id = league.id
+    player_state.current_team_id = team1.id
+    player_state.used_team_ids = [str(team1.id)]
+    player_state.has_superspin = True
+    player_state.team_locked = True
+    player_state.phase = PlayerSpinPhase.TEAM_LOCKED
+    db.add(player_state)
+
+    # Player 2's current team is team2 (also already used by player 2)
+    player_state2.current_league_id = league.id
+    player_state2.current_team_id = team2.id
+    player_state2.used_team_ids = [str(team2.id)]
+    player_state2.team_locked = True
+    player_state2.phase = PlayerSpinPhase.TEAM_LOCKED
+    db.add(player_state2)
+    db.commit()
+
+    # Only teams within ±5 of team2 (251) are candidates: team1 (250) and
+    # team2 (251). Both are already used in this round, so the fallback
+    # allows reuse rather than failing, but the selected team is in range.
+    result = SpinService.execute_superspin(db, player_state, 251)
+    assert result["team"].overall_rating in range(246, 257)
+    # The superspin result is recorded in the player's used history
+    assert str(result["team"].id) in player_state.used_team_ids

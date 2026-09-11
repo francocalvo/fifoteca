@@ -30,7 +30,7 @@ export type FifaTeamPublic = {
  */
 export type FifotecaMatchDetail = {
     id: string;
-    room_id: string;
+    room_id: (string | null);
     round_number: number;
     player1_id: string;
     player2_id: string;
@@ -72,7 +72,7 @@ export type FifotecaMatchHistoryPublic = {
  */
 export type FifotecaMatchPublic = {
     id: string;
-    room_id: string;
+    room_id: (string | null);
     round_number: number;
     player1_id: string;
     player2_id: string;
@@ -183,19 +183,19 @@ export type ManualMatchCreateRequest = {
 };
 
 /**
+ * Request to delete an existing match.
+ */
+export type ManualMatchDeleteRequest = {
+    match_id: string;
+};
+
+/**
  * Request to edit an existing match's scores.
  */
 export type ManualMatchEditRequest = {
     match_id: string;
     new_my_score: number;
     new_opponent_score: number;
-};
-
-/**
- * Request to delete an existing match.
- */
-export type ManualMatchDeleteRequest = {
-    match_id: string;
 };
 
 /**
@@ -257,13 +257,6 @@ export type Message = {
 export type NewPassword = {
     token: string;
     new_password: string;
-};
-
-export type PrivateUserCreate = {
-    email: string;
-    password: string;
-    full_name: string;
-    is_verified?: boolean;
 };
 
 export type Token = {
@@ -335,12 +328,56 @@ export type FifotecaReadLeagueTeamsData = {
 
 export type FifotecaReadLeagueTeamsResponse = (Array<FifaTeamPublic>);
 
+export type FifotecaCreateManualMatchRequestData = {
+    requestBody: ManualMatchCreateRequest;
+};
+
+export type FifotecaCreateManualMatchRequestResponse = (ManualMatchRequestPublic);
+
+export type FifotecaCreateEditRequestData = {
+    requestBody: ManualMatchEditRequest;
+};
+
+export type FifotecaCreateEditRequestResponse = (ManualMatchRequestPublic);
+
+export type FifotecaCreateDeleteRequestData = {
+    requestBody: ManualMatchDeleteRequest;
+};
+
+export type FifotecaCreateDeleteRequestResponse = (ManualMatchRequestPublic);
+
+export type FifotecaListManualMatchRequestsResponse = (ManualMatchRequestsPublic);
+
+export type FifotecaAcceptManualMatchRequestData = {
+    id: string;
+};
+
+export type FifotecaAcceptManualMatchRequestResponse = (Message);
+
+export type FifotecaDeclineManualMatchRequestData = {
+    id: string;
+};
+
+export type FifotecaDeclineManualMatchRequestResponse = (Message);
+
+export type FifotecaCancelManualMatchRequestData = {
+    id: string;
+};
+
+export type FifotecaCancelManualMatchRequestResponse = (Message);
+
 export type FifotecaSubmitMatchScoreData = {
     id: string;
     requestBody: MatchScoreSubmit;
 };
 
 export type FifotecaSubmitMatchScoreResponse = (FifotecaMatchPublic);
+
+export type FifotecaContestMatchScoreData = {
+    id: string;
+};
+
+export type FifotecaContestMatchScoreResponse = (FifotecaMatchPublic);
 
 export type FifotecaConfirmMatchResultData = {
     id: string;
@@ -367,6 +404,8 @@ export type FifotecaCreateRoomData = {
 };
 
 export type FifotecaCreateRoomResponse = (FifotecaRoomPublic);
+
+export type FifotecaListMyActiveRoomsResponse = (Array<FifotecaRoomPublic>);
 
 export type FifotecaJoinRoomData = {
     code: string;
@@ -455,12 +494,6 @@ export type LoginRecoverPasswordHtmlContentData = {
 
 export type LoginRecoverPasswordHtmlContentResponse = (string);
 
-export type PrivateCreateUserData = {
-    requestBody: PrivateUserCreate;
-};
-
-export type PrivateCreateUserResponse = (UserPublic);
-
 export type UsersReadUsersData = {
     limit?: number;
     skip?: number;
@@ -522,42 +555,3 @@ export type UtilsTestEmailData = {
 export type UtilsTestEmailResponse = (Message);
 
 export type UtilsHealthCheckResponse = (boolean);
-
-// Manual Match Request types
-export type FifotecaCreateManualMatchRequestData = {
-    requestBody: ManualMatchCreateRequest;
-};
-
-export type FifotecaCreateManualMatchRequestResponse = (ManualMatchRequestPublic);
-
-export type FifotecaCreateEditRequestData = {
-    requestBody: ManualMatchEditRequest;
-};
-
-export type FifotecaCreateEditRequestResponse = (ManualMatchRequestPublic);
-
-export type FifotecaCreateDeleteRequestData = {
-    requestBody: ManualMatchDeleteRequest;
-};
-
-export type FifotecaCreateDeleteRequestResponse = (ManualMatchRequestPublic);
-
-export type FifotecaListManualMatchRequestsResponse = (ManualMatchRequestsPublic);
-
-export type FifotecaAcceptManualMatchRequestData = {
-    id: string;
-};
-
-export type FifotecaAcceptManualMatchRequestResponse = (Message);
-
-export type FifotecaDeclineManualMatchRequestData = {
-    id: string;
-};
-
-export type FifotecaDeclineManualMatchRequestResponse = (Message);
-
-export type FifotecaCancelManualMatchRequestData = {
-    id: string;
-};
-
-export type FifotecaCancelManualMatchRequestResponse = (Message);

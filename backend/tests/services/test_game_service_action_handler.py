@@ -1,6 +1,6 @@
 """Tests for GameService handle_action method."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlmodel import Session, select
@@ -133,7 +133,7 @@ def active_room(
     db: Session, player: FifotecaPlayer, player2: FifotecaPlayer
 ) -> FifotecaRoom:
     """Create an active room in SPINNING_LEAGUES status."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     room = FifotecaRoom(
         code="ABC123",
         status=RoomStatus.SPINNING_LEAGUES,
@@ -586,7 +586,7 @@ class TestRoomErrors:
     ):
         """Test that expired room raises 410 Gone."""
         # Set room to expired
-        active_room.expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
+        active_room.expires_at = datetime.now(UTC) - timedelta(hours=1)
         db.add(active_room)
         db.commit()
 
@@ -1724,3 +1724,130 @@ class TestResetRoomForNewRound:
         for state in new_states:
             assert state.has_superspin is True
             assert state.superspin_used is False
+
+
+class TestProtectionThresholdBoundary:
+    """Protection is awarded only when rating diff is strictly greater than 5."""
+
+    def test_no_protection_at_diff_exactly_5(
+        self,
+        db: Session,
+        active_room: FifotecaRoom,
+        league: FifaLeague,
+    ) -> None:
+        """Rating diff == 5 must NOT award protection (rule: diff > 5)."""
+        team1 = FifaTeam(
+            name="Boundary High",
+            league_id=league.id,
+            attack_rating=90,
+            midfield_rating=90,
+            defense_rating=90,
+            overall_rating=245,
+        )
+        team2 = FifaTeam(
+            name="Boundary Low",
+            league_id=league.id,
+            attack_rating=80,
+            midfield_rating=80,
+            defense_rating=80,
+            overall_rating=240,
+        )
+        db.add(team1)
+        db.add(team2)
+        db.commit()
+
+        # Lock both teams
+        p1_state = db.exec(
+            select(FifotecaPlayerState).where(
+                FifotecaPlayerState.player_id == active_room.player1_id
+            )
+        ).first()
+        assert p1_state is not None
+        p1_state.current_league_id = league.id
+        p1_state.current_team_id = team1.id
+        p1_state.team_locked = True
+        p1_state.phase = PlayerSpinPhase.TEAM_LOCKED
+        db.add(p1_state)
+
+        p2_state = db.exec(
+            select(FifotecaPlayerState).where(
+                FifotecaPlayerState.player_id == active_room.player2_id
+            )
+        ).first()
+        assert p2_state is not None
+        p2_state.current_league_id = league.id
+        p2_state.current_team_id = team2.id
+        p2_state.team_locked = True
+        p2_state.phase = PlayerSpinPhase.TEAM_LOCKED
+        db.add(p2_state)
+        db.commit()
+
+        # Trigger rating review
+        SpinService.check_phase_transition(db, active_room)
+        db.refresh(active_room)
+
+        review = GameService._compute_rating_review(db, active_room)
+        assert review is not None
+        assert review["difference"] == 5
+        # Exactly 5 → no protection preview
+        assert review["protection_awarded_to_id"] is None
+
+    def test_protection_at_diff_6(
+        self,
+        db: Session,
+        active_room: FifotecaRoom,
+        league: FifaLeague,
+    ) -> None:
+        """Rating diff == 6 must award protection to the weaker player."""
+        team1 = FifaTeam(
+            name="Boundary Six High",
+            league_id=league.id,
+            attack_rating=91,
+            midfield_rating=91,
+            defense_rating=91,
+            overall_rating=246,
+        )
+        team2 = FifaTeam(
+            name="Boundary Six Low",
+            league_id=league.id,
+            attack_rating=80,
+            midfield_rating=80,
+            defense_rating=80,
+            overall_rating=240,
+        )
+        db.add(team1)
+        db.add(team2)
+        db.commit()
+
+        p1_state = db.exec(
+            select(FifotecaPlayerState).where(
+                FifotecaPlayerState.player_id == active_room.player1_id
+            )
+        ).first()
+        assert p1_state is not None
+        p1_state.current_league_id = league.id
+        p1_state.current_team_id = team1.id
+        p1_state.team_locked = True
+        p1_state.phase = PlayerSpinPhase.TEAM_LOCKED
+        db.add(p1_state)
+
+        p2_state = db.exec(
+            select(FifotecaPlayerState).where(
+                FifotecaPlayerState.player_id == active_room.player2_id
+            )
+        ).first()
+        assert p2_state is not None
+        p2_state.current_league_id = league.id
+        p2_state.current_team_id = team2.id
+        p2_state.team_locked = True
+        p2_state.phase = PlayerSpinPhase.TEAM_LOCKED
+        db.add(p2_state)
+        db.commit()
+
+        SpinService.check_phase_transition(db, active_room)
+        db.refresh(active_room)
+
+        review = GameService._compute_rating_review(db, active_room)
+        assert review is not None
+        assert review["difference"] == 6
+        assert review["protection_awarded_to_id"] == str(active_room.player2_id)

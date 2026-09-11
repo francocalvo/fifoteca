@@ -124,8 +124,15 @@ export const FifotecaMatchDetailSchema = {
             title: 'Id'
         },
         room_id: {
-            type: 'string',
-            format: 'uuid',
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Room Id'
         },
         round_number: {
@@ -332,8 +339,15 @@ export const FifotecaMatchPublicSchema = {
             title: 'Id'
         },
         room_id: {
-            type: 'string',
-            format: 'uuid',
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
             title: 'Room Id'
         },
         round_number: {
@@ -864,6 +878,315 @@ export const ItemsPublicSchema = {
     title: 'ItemsPublic'
 } as const;
 
+export const ManualMatchCreateRequestSchema = {
+    properties: {
+        opponent_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Opponent Id'
+        },
+        my_team_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'My Team Id'
+        },
+        opponent_team_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Opponent Team Id'
+        },
+        my_score: {
+            type: 'integer',
+            minimum: 0,
+            title: 'My Score'
+        },
+        opponent_score: {
+            type: 'integer',
+            minimum: 0,
+            title: 'Opponent Score'
+        },
+        played_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Played At'
+        }
+    },
+    type: 'object',
+    required: ['opponent_id', 'my_team_id', 'opponent_team_id', 'my_score', 'opponent_score'],
+    title: 'ManualMatchCreateRequest',
+    description: 'Request to create a manual match.'
+} as const;
+
+export const ManualMatchDeleteRequestSchema = {
+    properties: {
+        match_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Match Id'
+        }
+    },
+    type: 'object',
+    required: ['match_id'],
+    title: 'ManualMatchDeleteRequest',
+    description: 'Request to delete an existing match.'
+} as const;
+
+export const ManualMatchEditRequestSchema = {
+    properties: {
+        match_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Match Id'
+        },
+        new_my_score: {
+            type: 'integer',
+            minimum: 0,
+            title: 'New My Score'
+        },
+        new_opponent_score: {
+            type: 'integer',
+            minimum: 0,
+            title: 'New Opponent Score'
+        }
+    },
+    type: 'object',
+    required: ['match_id', 'new_my_score', 'new_opponent_score'],
+    title: 'ManualMatchEditRequest',
+    description: "Request to edit an existing match's scores."
+} as const;
+
+export const ManualMatchRequestPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        request_type: {
+            type: 'string',
+            title: 'Request Type'
+        },
+        status: {
+            type: 'string',
+            title: 'Status'
+        },
+        requester_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Requester Id'
+        },
+        requester_display_name: {
+            type: 'string',
+            title: 'Requester Display Name'
+        },
+        responder_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Responder Id'
+        },
+        responder_display_name: {
+            type: 'string',
+            title: 'Responder Display Name'
+        },
+        requester_team_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Requester Team Name'
+        },
+        responder_team_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Responder Team Name'
+        },
+        requester_team_rating: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Requester Team Rating'
+        },
+        responder_team_rating: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Responder Team Rating'
+        },
+        requester_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Requester Score'
+        },
+        responder_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Responder Score'
+        },
+        rating_difference: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rating Difference'
+        },
+        original_match_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Original Match Id'
+        },
+        current_requester_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Current Requester Score'
+        },
+        current_responder_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Current Responder Score'
+        },
+        new_requester_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'New Requester Score'
+        },
+        new_responder_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'New Responder Score'
+        },
+        played_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Played At'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        expires_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Expires At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'request_type', 'status', 'requester_id', 'requester_display_name', 'responder_id', 'responder_display_name', 'expires_at'],
+    title: 'ManualMatchRequestPublic',
+    description: 'Public schema for manual match request.'
+} as const;
+
+export const ManualMatchRequestsPublicSchema = {
+    properties: {
+        incoming: {
+            items: {
+                '$ref': '#/components/schemas/ManualMatchRequestPublic'
+            },
+            type: 'array',
+            title: 'Incoming'
+        },
+        outgoing: {
+            items: {
+                '$ref': '#/components/schemas/ManualMatchRequestPublic'
+            },
+            type: 'array',
+            title: 'Outgoing'
+        }
+    },
+    type: 'object',
+    required: ['incoming', 'outgoing'],
+    title: 'ManualMatchRequestsPublic',
+    description: 'List of manual match requests.'
+} as const;
+
 export const MatchScoreSubmitSchema = {
     properties: {
         player1_score: {
@@ -931,31 +1254,6 @@ export const NewPasswordSchema = {
     type: 'object',
     required: ['token', 'new_password'],
     title: 'NewPassword'
-} as const;
-
-export const PrivateUserCreateSchema = {
-    properties: {
-        email: {
-            type: 'string',
-            title: 'Email'
-        },
-        password: {
-            type: 'string',
-            title: 'Password'
-        },
-        full_name: {
-            type: 'string',
-            title: 'Full Name'
-        },
-        is_verified: {
-            type: 'boolean',
-            title: 'Is Verified',
-            default: false
-        }
-    },
-    type: 'object',
-    required: ['email', 'password', 'full_name'],
-    title: 'PrivateUserCreate'
 } as const;
 
 export const TokenSchema = {
