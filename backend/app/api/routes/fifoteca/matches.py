@@ -276,7 +276,7 @@ async def confirm_match_result(
         final_rating_diff = abs(p1_team.overall_rating - p2_team.overall_rating)
         match.rating_difference = final_rating_diff
         protection_awarded_to_id = None
-        if final_rating_diff >= 5:
+        if final_rating_diff > 5:
             if p1_team.overall_rating < p2_team.overall_rating:
                 protection_awarded_to_id = match.player1_id
             elif p2_team.overall_rating < p1_team.overall_rating:

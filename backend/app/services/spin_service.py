@@ -34,6 +34,8 @@ class SpinService:
     def spin_league(session: Session, player_state: FifotecaPlayerState) -> dict:
         """Pick random league and decrement spins remaining.
 
+        Each spin within the same round must yield a unique league.
+
         Args:
             session: Database session.
             player_state: The player state to spin for.
@@ -52,11 +54,19 @@ class SpinService:
         statement = select(FifaLeague)
         leagues = session.exec(statement).all()
 
+        # Exclude previously spun leagues in this round
+        used = set(player_state.used_league_ids or [])
+        if used:
+            leagues = [l for l in leagues if str(l.id) not in used]
+
         if not leagues:
             raise ValueError("No leagues available")
 
         # Pick random league
         league = random.choice(leagues)
+
+        # Track this league as used
+        player_state.used_league_ids = list(used | {str(league.id)})
 
         # Update player state
         player_state.current_league_id = league.id
@@ -96,6 +106,8 @@ class SpinService:
     def spin_team(session: Session, player_state: FifotecaPlayerState) -> dict:
         """Pick random team from locked league.
 
+        Each spin within the same round must yield a unique team.
+
         Args:
             session: Database session.
             player_state: The player state to spin for.
@@ -123,11 +135,19 @@ class SpinService:
         )
         teams = session.exec(statement).all()
 
+        # Exclude previously spun teams in this round
+        used = set(player_state.used_team_ids or [])
+        if used:
+            teams = [t for t in teams if str(t.id) not in used]
+
         if not teams:
             raise ValueError("No teams available in selected league")
 
         # Pick random team
         team = random.choice(teams)
+
+        # Track this team as used
+        player_state.used_team_ids = list(used | {str(team.id)})
 
         # Update player state
         player_state.current_team_id = team.id
@@ -340,7 +360,7 @@ class SpinService:
     def execute_parity_spin(
         session: Session, player_state: FifotecaPlayerState, opponent_rating: int | None
     ) -> dict:
-        """Execute parity spin: find team within ±30 rating (same league first).
+        """Execute parity spin: find team within ±29 rating (same league first).
 
         Args:
             session: Database session.
@@ -367,8 +387,8 @@ class SpinService:
         if player_state.current_league_id:
             statement = select(FifaTeam).where(
                 (FifaTeam.league_id == player_state.current_league_id)
-                & (FifaTeam.overall_rating >= opponent_rating - 30)
-                & (FifaTeam.overall_rating <= opponent_rating + 30)
+                & (FifaTeam.overall_rating >= opponent_rating - 29)
+                & (FifaTeam.overall_rating <= opponent_rating + 29)
             )
             same_league_candidates = session.exec(statement).all()
 
@@ -379,14 +399,14 @@ class SpinService:
         # Fallback to all leagues if no same-league candidate
         if selected_team is None:
             statement = select(FifaTeam).where(
-                (FifaTeam.overall_rating >= opponent_rating - 30)
-                & (FifaTeam.overall_rating <= opponent_rating + 30)
+                (FifaTeam.overall_rating >= opponent_rating - 29)
+                & (FifaTeam.overall_rating <= opponent_rating + 29)
             )
             all_candidates = session.exec(statement).all()
 
             if not all_candidates:
                 raise SpecialSpinError(
-                    f"No teams found within ±30 rating of opponent ({opponent_rating})"
+                    f"No teams found within ±29 rating of opponent ({opponent_rating})"
                 )
 
             selected_team = random.choice(all_candidates)

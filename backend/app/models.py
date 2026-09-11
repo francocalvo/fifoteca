@@ -4,7 +4,8 @@ from enum import Enum
 from typing import Optional
 
 from pydantic import EmailStr
-from sqlalchemy import DateTime
+from sqlalchemy import JSON, DateTime
+from sqlalchemy import Column as SAColumn
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -258,6 +259,8 @@ class FifotecaPlayerState(SQLModel, table=True):
     superspin_used: bool = Field(default=False)
     has_parity_spin: bool = Field(default=False)  # Granted during rating review
     parity_spin_used: bool = Field(default=False)
+    used_league_ids: list[str] = Field(default_factory=list, sa_column=SAColumn(JSON, default=[]))
+    used_team_ids: list[str] = Field(default_factory=list, sa_column=SAColumn(JSON, default=[]))
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore

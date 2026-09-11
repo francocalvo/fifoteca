@@ -184,13 +184,13 @@ class GameService:
             weaker_state = p2_state
             weaker_player_id = room.player2_id
 
-        # Protection preview (diff >= 5) — actual has_protection is set
+        # Protection preview (diff > 5) — actual has_protection is set
         # when the match is created, not here, since special spins can change teams.
         protection_awarded_to_id = None
-        if rating_difference >= 5:
+        if rating_difference > 5:
             protection_awarded_to_id = weaker_player_id
 
-        # Award parity spin at diff >= 30 (only on initial computation)
+        # Award parity spin at diff >= 30 (out of limits; only on initial computation)
         parity_available_to_id = None
         if rating_difference >= 30 and not weaker_state.parity_spin_used:
             if award_parity_spin:
